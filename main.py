@@ -5,6 +5,7 @@ import time
 import serial
 import threading
 import subprocess
+import queue
 from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -38,8 +39,7 @@ shared_state = {
 _action_seq = 0
 _state_seq = 0
 _partial_line_buffer = ""
-ser_lock = threading.Lock()
-ser_obj = None
+send_queue = queue.Queue()
 
 # --- 1. Helper Functions ---
 def get_machine_system():
@@ -66,7 +66,6 @@ def _save_to_pi(config: dict):
     try:
         with open(os.path.join(BASE_DIR, "Global_data.json"), "w") as f:
             json.dump(config, f, indent=2)
-        print("UART: Successfully saved config to Global_data.json")
     except Exception as e:
         print(f"PI SAVE ERROR: {e}")
 
@@ -75,7 +74,6 @@ def _parse_line(line: str):
     if not line: return
     print(f"UART READ: {repr(line)}")
 
-    # 1. State/Balance/MQTT
     if line.startswith("[State]"):
         name = line.replace("[State]", "").strip()
         _state_seq += 1
@@ -101,11 +99,10 @@ def _parse_line(line: str):
         if "MQTT" in txt.upper() and "ONLINE" in txt.upper():
             shared_state["mqtt_online"] = True
 
-    # 2. Config & JSON
     elif line.startswith("[Config]"):
-        val_str = line.split("[Config]")[1].strip()
-        if "|" in val_str: val_str = val_str.split("|", 1)[1]
         try:
+            val_str = line.split("[Config]")[1].strip()
+            if "|" in val_str: val_str = val_str.split("|", 1)[1]
             config_data = json.loads(val_str)
             _save_to_pi(config_data)
         except: pass
@@ -116,7 +113,6 @@ def _parse_line(line: str):
             _save_to_pi(config_data)
         except: pass
 
-    # 3. Fragments
     elif line.startswith("{") and not line.endswith("}"):
         _partial_line_buffer = line
     elif _partial_line_buffer and line.endswith("}"):
@@ -129,7 +125,6 @@ def _parse_line(line: str):
     elif _partial_line_buffer:
         _partial_line_buffer += line
 
-    # 4. QR/Status
     elif ":" in line and any(x in line for x in ["QR_", "PAYMENT_", "WAITING_"]):
         parts = line.split(":", 1)
         shared_state["last_action_event"] = {"name": parts[0].strip(), "val": parts[1].strip(), "seq": time.time()}
@@ -141,42 +136,36 @@ def _parse_line(line: str):
         raw = line.replace("[Schedule]", "").strip()
         shared_state["last_schedule_event"] = {"raw": raw, "seq": time.time()}
 
-def uart_thread():
-    global ser_obj
+def uart_worker():
     while True:
         try:
-            with ser_lock:
-                if ser_obj is None or not ser_obj.is_open:
-                    ser_obj = serial.Serial('/dev/ttyAMA0', 115200, timeout=0.1)
-                    print("UART: Opened /dev/ttyAMA0")
-            
+            ser = serial.Serial('/dev/ttyAMA0', 115200, timeout=0.1)
+            print("UART: Connected to /dev/ttyAMA0")
             while True:
-                line = ""
-                with ser_lock:
-                    if ser_obj.in_waiting > 0:
-                        line = ser_obj.readline().decode('utf-8', errors='ignore').strip()
-                if line: _parse_line(line)
-                else: time.sleep(0.05)
+                # 1. Read
+                if ser.in_waiting > 0:
+                    line = ser.readline().decode('utf-8', errors='ignore').strip()
+                    if line: _parse_line(line)
+                
+                # 2. Write
+                try:
+                    while not send_queue.empty():
+                        msg = send_queue.get_nowait()
+                        print(f"UART SEND: {msg}")
+                        ser.write((msg + "\n").encode('utf-8'))
+                        send_queue.task_done()
+                except queue.Empty:
+                    pass
+                
+                time.sleep(0.01)
         except Exception as e:
-            print(f"UART ERROR: {e}")
+            print(f"UART WORKER ERROR: {e}")
             time.sleep(2)
 
 def send_uart(msg: str):
-    global ser_obj
-    print(f"UART SEND: {msg}")
-    try:
-        with ser_lock:
-            if ser_obj and ser_obj.is_open:
-                ser_obj.write((msg + "\n").encode('utf-8'))
-            else:
-                # Fallback if thread not started
-                tmp = serial.Serial('/dev/ttyAMA0', 115200, timeout=1)
-                tmp.write((msg + "\n").encode('utf-8'))
-                tmp.close()
-    except Exception as e:
-        print(f"UART SEND ERROR: {e}")
+    send_queue.put(msg)
 
-threading.Thread(target=uart_thread, daemon=True).start()
+threading.Thread(target=uart_worker, daemon=True).start()
 
 # --- Routes ---
 @app.get("/", response_class=HTMLResponse)
@@ -211,7 +200,8 @@ async def page_qr(request: Request):
 async def page_op_carwash(request: Request):
     shared_state["current_page"] = "operation"
     send_uart("[State] operation")
-    return templates.TemplateResponse(request=request, name="pages/operation_catcarwash.html", context={"active_functions": get_active_functions()})
+    active_fns = get_active_functions()
+    return templates.TemplateResponse(request=request, name="pages/operation_catcarwash.html", context={"active_functions": active_fns})
 
 @app.get("/page/operation_CATPAW")
 @app.get("/page/operation_CATPAW-SHOE")

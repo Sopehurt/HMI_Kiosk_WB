@@ -44,7 +44,7 @@
     <!-- Finish overlay (minimalist) -->
     <div id="finish-overlay" style="display:none; position:absolute; inset:0; background:#111827; z-index:300; justify-content:center; align-items:center; flex-direction:column; gap:40px;">
         <h2 style="color:#10B981; font-size:6rem; font-weight:bold; letter-spacing:10px; margin:0;">COMPLETED</h2>
-        <button style="background:#3B82F6; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:20px 80px; cursor:pointer;" onclick="navTo('/page/home', '[State] Home')">Return to Home</button>
+        <button style="background:#3B82F6; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:20px 80px; cursor:pointer;" onclick="navTo('/page/home')">Return to Home</button>
     </div>
 </div>
 
@@ -74,7 +74,6 @@
         let isPaused = false;
         let lastSeenSchedSeq = 0;
         let parsedSchedule = null;
-        let localTimer = null;
 
         // Render functions
         const container = document.getElementById('function-list');
@@ -90,21 +89,18 @@
                 const res = await fetch('/api/action_state');
                 const d = await res.json();
                 
-                // 1. Update Timer
                 if (d.countdown !== undefined && d.countdown !== null && d.countdown !== '--') {
                     document.getElementById('main-timer').innerText = d.countdown;
                     updateIndicators(parseInt(d.countdown));
                 }
 
-                // 2. Schedule
                 if (d.schedule_event && d.schedule_event.seq > lastSeenSchedSeq) {
                     lastSeenSchedSeq = d.schedule_event.seq;
                     parseSchedule(d.schedule_event.raw);
                 }
 
-                // 3. State Check
                 if (d.state_event && d.state_event.name === 'Finish') {
-                    document.getElementById('finish-overlay').style.display = 'flex';
+                    cpForceFinish();
                 }
             } catch(e){}
         }
@@ -153,7 +149,8 @@
         };
 
         window.cpForceFinish = () => {
-            fetch('/api/uart_send?msg=[Action] Finish');
+            fetch('/api/uart_send?msg=[State] Finish');
+            setTimeout(() => fetch('/api/uart_send?msg=[Action] Finish'), 50);
             document.getElementById('finish-overlay').style.display = 'flex';
         };
 

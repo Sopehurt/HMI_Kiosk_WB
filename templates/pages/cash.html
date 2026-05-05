@@ -1,6 +1,6 @@
-<div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column;">
+<div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column; font-family: sans-serif;">
     <!-- Header -->
-    <div style="height:72px; background:#E79124; display:flex; align-items:center; justify-content:space-between; padding:0 32px; flex-shrink:0;">
+    <div style="height:72px; background:#E79124; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 32px; flex-shrink:0;">
         <span style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">Cash Payment</span>
         <div style="display:flex; gap:15px; align-items:center;">
             <div style="color:white; font-size:1.3rem; font-weight:bold; background:rgba(0,0,0,0.2); padding:8px 16px; border-radius:8px;">
@@ -40,14 +40,12 @@
 <script>
     (function() {
         let startPrice = 20;
-        let machineSystem = "CATCARWASH";
 
         async function init() {
             try {
-                const res = await fetch('/api/settings');
+                const res = await fetch('/api/settings?t=' + Date.now());
                 const config = await res.json();
                 startPrice = config.startPrices || 20;
-                machineSystem = config.machine_system || "CATCARWASH";
                 document.getElementById('start-price-label').innerText = startPrice;
                 if (typeof currentDisplayedBalance !== 'undefined') {
                     updateCashUI(currentDisplayedBalance);
@@ -66,9 +64,17 @@
                 btn.style.visibility = 'hidden'; btn.style.opacity = '0';
             }
         }
-        window.startOp = () => {
-            fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Start'));
-            navTo('/page/operation_' + machineSystem);
+        window.startOp = async () => {
+            // Re-fetch machine system JUST before navigating
+            try {
+                const res = await fetch('/api/settings?t=' + Date.now());
+                const config = await res.json();
+                const system = config.machine_system || "CATCARWASH";
+                fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Start'));
+                navTo('/page/operation_' + system);
+            } catch(e) {
+                navTo('/page/operation_CATCARWASH');
+            }
         };
         document.addEventListener('balanceAnimated', (e) => { updateCashUI(e.detail.balance); });
         init();

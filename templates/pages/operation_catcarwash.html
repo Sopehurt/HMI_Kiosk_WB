@@ -31,7 +31,7 @@
 
     <!-- Finish Button Area -->
     <div style="height:100px; display:flex; justify-content:center; align-items:center; padding-bottom:15px;">
-        <button onclick="navTo('/page/home', '[State] Home')" style="width:300px; height:70px; background:#EF4444; color:white; border:none; border-radius:16px; font-size:2rem; font-weight:bold; cursor:pointer; box-shadow:0 6px 15px rgba(0,0,0,0.3);">FINISH</button>
+        <button onclick="finishOp()" style="width:300px; height:70px; background:#EF4444; color:white; border:none; border-radius:16px; font-size:2rem; font-weight:bold; cursor:pointer; box-shadow:0 6px 15px rgba(0,0,0,0.3);">FINISH</button>
     </div>
 </div>
 
@@ -87,6 +87,12 @@
             st.style.color = '#F59E0B';
         }
 
+        window.finishOp = () => {
+            fetch('/api/uart_send?msg=[State] Finish');
+            setTimeout(() => fetch('/api/uart_send?msg=[Action] Finish'), 50);
+            navTo('/page/home');
+        };
+
         window.topUp = () => navTo('/page/qr?mode=topup', '[Action] Pause');
 
         // Simple poll for zero balance
@@ -94,7 +100,7 @@
             try {
                 const res = await fetch('/api/action_state');
                 const d = await res.json();
-                if (d.balance <= 0) navTo('/page/home', '[State] Home');
+                if (d.balance <= 0) finishOp();
             } catch(e){}
         }, 1000);
 
