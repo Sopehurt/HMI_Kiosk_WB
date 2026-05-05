@@ -1,34 +1,113 @@
 <div id="home-root" 
     hx-get="/page/payment" hx-target="#content"
-    style="width:1024px; height:600px; background:#0f172a; display:flex; flex-direction:column; justify-content:center; align-items:center; position:relative; overflow:hidden; cursor:pointer;">
+    style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column; justify-content:center; align-items:center; position:relative; overflow:hidden; cursor:pointer;">
     
     <!-- Branding Section -->
     <div style="text-align:center;">
-        <h1 style="font-size:110px; font-weight:700; color:white; margin:0; letter-spacing:2px; font-family:'Inter', sans-serif;">Moderncha</h1>
-        <p style="font-size:26px; color:#94a3b8; margin-top:10px; letter-spacing:1px; font-weight:400;">Tap to start</p>
+        <h1 style="font-size:100px; font-weight:700; color:#ffffff; margin:0; letter-spacing:-1px; font-family:'Inter', -apple-system, sans-serif;">Moderncha</h1>
+        <p style="font-size:22px; color:#64748b; margin-top:20px; letter-spacing:1px; font-weight:400;">Tap to start</p>
     </div>
 
     <!-- Status Indicator (Bottom Right) -->
-    <div style="position:absolute; bottom:30px; right:30px; display:flex; align-items:center; background:#020617; border:1px solid rgba(16,185,129,0.3); border-radius:40px; padding:6px 14px; gap:8px;">
-        <div style="width:8px; height:8px; background:#10b981; border-radius:50%; box-shadow: 0 0 12px #10b981;"></div>
-        <span style="color:#10b981; font-size:12px; font-weight:800; letter-spacing:1px;">ONLINE</span>
+    <div style="position:absolute; bottom:25px; right:25px; display:flex; align-items:center; background:#020617; border:1px solid rgba(16,185,129,0.2); border-radius:100px; padding:6px 12px; gap:8px;">
+        <div style="width:8px; height:8px; background:#10b981; border-radius:50%; box-shadow: 0 0 10px rgba(16,185,129,0.8);"></div>
+        <span style="color:#10b981; font-size:12px; font-weight:700; letter-spacing:1px; font-family:sans-serif;">ONLINE</span>
     </div>
 
     <!-- Hidden Admin Panel Access (Top Right) -->
-    <div style="position:absolute; top:0; right:0; width:100px; height:100px;" 
-         onclick="event.stopPropagation(); htmx.ajax('GET', '/page/maintenance', {target: '#content'})">
+    <div style="position:absolute; top:0; right:0; width:100px; height:100px; z-index:100;" 
+         onclick="event.stopPropagation(); adminTap()">
     </div>
 </div>
 
+<!-- Admin Numpad Overlay -->
+<div id="admin-numpad" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; display:none; justify-content:center; align-items:center;">
+    <div style="background:#1f2937; border:1px solid #374151; border-radius:24px; padding:30px; width:360px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+        <div style="text-align:center; margin-bottom:20px;">
+            <h3 style="color:#94a3b8; font-size:14px; letter-spacing:2px; margin-bottom:10px;">ENTER ADMIN CODE</h3>
+            <div id="admin-display" style="height:60px; background:#111827; border-radius:12px; display:flex; justify-content:center; align-items:center; font-size:32px; letter-spacing:8px; color:white; font-weight:700;"></div>
+        </div>
+        
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:15px;">
+            <!-- Numpad Buttons -->
+            <button class="num-btn" onclick="pressAdmin('1')">1</button>
+            <button class="num-btn" onclick="pressAdmin('2')">2</button>
+            <button class="num-btn" onclick="pressAdmin('3')">3</button>
+            <button class="num-btn" onclick="pressAdmin('4')">4</button>
+            <button class="num-btn" onclick="pressAdmin('5')">5</button>
+            <button class="num-btn" onclick="pressAdmin('6')">6</button>
+            <button class="num-btn" onclick="pressAdmin('7')">7</button>
+            <button class="num-btn" onclick="pressAdmin('8')">8</button>
+            <button class="num-btn" onclick="pressAdmin('9')">9</button>
+            <button class="num-btn" style="background:#ef4444;" onclick="pressAdmin('CLR')">C</button>
+            <button class="num-btn" onclick="pressAdmin('0')">0</button>
+            <button class="num-btn" style="background:#3b82f6;" onclick="closeAdmin()">X</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .num-btn {
+        height: 70px; border-radius: 12px; border: none; background: #374151; color: white;
+        font-size: 24px; font-weight: 700; cursor: pointer;
+    }
+    .num-btn:active { background: #4b5563; }
+</style>
+
 <script>
 (function() {
-    // Keep the state polling but remove logic that might interfere with the new UI
+    let tapCount = 0;
+    let tapTimer = null;
+    let adminCode = "";
+
+    window.adminTap = function() {
+        tapCount++;
+        clearTimeout(tapTimer);
+        if (tapCount >= 5) {
+            tapCount = 0;
+            document.getElementById('admin-numpad').style.display = 'flex';
+        } else {
+            tapTimer = setTimeout(() => { tapCount = 0; }, 2000);
+        }
+    };
+
+    window.pressAdmin = function(v) {
+        if (v === 'CLR') {
+            adminCode = "";
+        } else {
+            if (adminCode.length < 5) adminCode += v;
+        }
+        
+        // Update display with dots
+        let display = "";
+        for(let i=0; i<adminCode.length; i++) display += "●";
+        document.getElementById('admin-display').innerText = display;
+
+        if (adminCode === "00000") {
+            adminCode = "";
+            document.getElementById('admin-numpad').style.display = 'none';
+            htmx.ajax('GET', '/page/maintenance', {target: '#content'});
+        } else if (adminCode.length >= 5) {
+            // Wrong code, flash red and reset
+            document.getElementById('admin-display').style.color = "#ef4444";
+            setTimeout(() => {
+                adminCode = "";
+                document.getElementById('admin-display').innerText = "";
+                document.getElementById('admin-display').style.color = "white";
+            }, 500);
+        }
+    };
+
+    window.closeAdmin = function() {
+        adminCode = "";
+        document.getElementById('admin-display').innerText = "";
+        document.getElementById('admin-numpad').style.display = 'none';
+    };
+
     const poll = setInterval(async () => {
         try {
             const res = await fetch('/api/action_state');
             const d = await res.json();
-            // Optional: Update ONLINE/OFFLINE based on mqtt_status if desired
-            // For now, keeping it static as "ONLINE" per image
         } catch(e) {}
     }, 2000);
 

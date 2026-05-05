@@ -472,24 +472,42 @@ async def wifi_status():
 @app.get("/api/wifi/scan")
 async def wifi_scan():
     try:
-        output = subprocess.check_output("nmcli -t -f SSID,SIGNAL dev wifi", shell=True).decode()
+        # Try to trigger a rescan (needs sudo to be reliable)
+        try:
+            subprocess.run("sudo nmcli dev wifi rescan", shell=True, capture_output=True, timeout=5)
+            time.sleep(2) 
+        except:
+            pass
+
+        output = subprocess.check_output("sudo nmcli -t -f SSID,SIGNAL dev wifi", shell=True).decode()
         networks = []
         for line in output.split('\n'):
-            if line.strip():
-                parts = line.split(':')
-                if len(parts) >= 2 and parts[0]:
-                    networks.append({"ssid": parts[0], "signal": parts[1]})
-        # Sort by signal strength
-        networks.sort(key=lambda x: int(x["signal"]), reverse=True)
-        # Unique SSIDs
+            line = line.strip()
+            if not line:
+                continue
+            
+            if ':' in line:
+                parts = line.rsplit(':', 1)
+                ssid = parts[0]
+                signal = parts[1]
+                if ssid: 
+                    networks.append({"ssid": ssid, "signal": signal})
+        
+        try:
+            networks.sort(key=lambda x: int(x["signal"]), reverse=True)
+        except:
+            pass
+
         seen = set()
         unique = []
         for n in networks:
             if n["ssid"] not in seen:
                 seen.add(n["ssid"])
                 unique.append(n)
-        return {"networks": unique[:10]}
-    except:
+        
+        return {"networks": unique[:50]}
+    except Exception as e:
+        print(f"WIFI SCAN ERROR: {e}")
         return {"networks": []}
 
 @app.post("/api/wifi/connect")
@@ -498,17 +516,30 @@ async def wifi_connect(request: Request):
     ssid = data.get("ssid")
     password = data.get("password")
     try:
-        subprocess.run(f'nmcli dev wifi connect "{ssid}" password "{password}"', shell=True, check=True)
+        # 1. Delete existing connection to avoid conflicts
+        subprocess.run(f'sudo nmcli connection delete "{ssid}"', shell=True, capture_output=True)
+        
+        # 2. Add connection manually with explicit security (fixes 'property missing' error)
+        add_cmd = (
+            f'sudo nmcli connection add type wifi ifname wlan0 con-name "{ssid}" ssid "{ssid}" '
+            f'-- wifi-sec.key-mgmt wpa-psk wifi-sec.psk "{password}"'
+        )
+        subprocess.run(add_cmd, shell=True, check=True, capture_output=True)
+        
+        # 3. Bring up the connection
+        subprocess.run(f'sudo nmcli connection up "{ssid}"', shell=True, check=True, capture_output=True)
+        
         return {"message": "Connected successfully"}
-    except:
-        return {"message": "Connection failed"}, 400
+    except Exception as e:
+        print(f"WIFI CONNECT ERROR: {e}")
+        return {"message": f"Connection failed: {str(e)}"}, 400
 
 @app.post("/api/wifi/forget")
 async def wifi_forget(request: Request):
     data = await request.json()
     ssid = data.get("ssid")
     try:
-        subprocess.run(f'nmcli connection delete "{ssid}"', shell=True, check=True)
+        subprocess.run(f'sudo nmcli connection delete "{ssid}"', shell=True, check=True)
         return {"message": "Network forgotten"}
     except:
         return {"message": "Failed to forget network"}, 400
