@@ -275,7 +275,18 @@
         document.getElementById('m-np').style.display='flex'; 
         vInp.value=el?el.value:""; 
     };
-    window.pressNp = (v) => { let d=document.getElementById('m-np-val'); if(v==='CLR') d.value=''; else d.value+=v; };
+    window.pressNp = (v) => { 
+        let d=document.getElementById('m-np-val'); 
+        if(v==='CLR') d.value=''; 
+        else if(v==='DEL') d.value = d.value.slice(0, -1);
+        else d.value+=v; 
+
+        if(pendingPage==='merchant' && d.value==='88888'){
+            forceShowPage('merchant');
+            pendingPage=null;
+            document.getElementById('m-np').style.display='none';
+        }
+    };
     window.closeNp = (s) => {
         const val = document.getElementById('m-np-val').value;
         if(s) {
@@ -289,7 +300,18 @@
         document.getElementById('m-np').style.display='none';
     };
 
-    window.updateWifiStatus = async () => { try { const res=await fetch('/api/wifi/status'); const d=await res.json(); document.getElementById('w-status-ssid').innerText=d.ssid?`Connected: ${d.ssid}`:'--'; document.getElementById('w-status-ip').innerText=d.ip?`IP: ${d.ip}`:'--'; } catch(e){} };
+    window.updateWifiStatus = async () => { 
+        try { 
+            const res=await fetch('/api/wifi/status'); 
+            const d=await res.json(); 
+            document.getElementById('w-status-ssid').innerText=d.ssid?`Connected: ${d.ssid}`:'--'; 
+            document.getElementById('w-status-ip').innerText=d.ip?`IP: ${d.ip}`:'--'; 
+            
+            // Populate inputs from preference
+            if(config.ssid) document.getElementById('w-ssid').value = config.ssid;
+            if(config.wfpwd) document.getElementById('w-pass').value = config.wfpwd;
+        } catch(e){} 
+    };
     window.connectWifi = async () => { /* ... */ };
     window.forgetWifi = async () => { /* ... */ };
     window.scanWifi = async () => { /* ... */ };
@@ -299,23 +321,26 @@
         const box = document.getElementById('fn-container');
         let html = '<table class="f-table">';
         if (currentMode === 'CATCARWASH') {
+            html += '<tr><th>Name</th><th>Enable</th><th>Order</th><th>Time</th></tr>';
             const names = ["ฉีดน้ำ", "ยางดำ", "WAX", "ดูดฝุ่น", "น้ำหอม", "ลม", "ประปา", "โฟม"];
-            const en = config.fnEnable || [true,true,true,true,true,true,true,true];
-            const t = config.fnTime || [15,12,12,12,20,15,15,10];
-            const o = config.fnOrder || [0,1,2,3,4,5,6,7];
-            names.forEach((n, i) => { html += `<tr><td>${n}</td><td><input type="checkbox" class="f-check" ${en[i]?'checked':''}></td><td><input class="f-input" value="${o[i]}" style="width:50px;height:35px;" onclick="openNp(this)"></td><td><input class="f-input" value="${t[i]}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; });
+            const en = config.fnEnable || config.fn_enable || [true,true,true,true,true,true,true,true];
+            const t = config.fnTime || config.fn_time || [15,12,12,12,20,15,15,10];
+            const o = config.fnOrder || config.fn_order || [0,1,2,3,4,5,6,7];
+            names.forEach((n, i) => { 
+                html += `<tr><td>${n}</td><td><input type="checkbox" class="f-check" ${en[i]?'checked':''}></td><td><input class="f-input" value="${o[i]}" style="width:50px;height:35px;" onclick="openNp(this)"></td><td><input class="f-input" value="${t[i]}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; 
+            });
         } else {
             html += '<tr><th>NAME</th><th style="text-align:center;">Start_Time</th><th style="text-align:center;">End_Time</th></tr>';
-            const cp = config.catpaw_config || { t_total:420, bact_s:0, bact_e:60, dust_s:60, dust_e:120, ozone_s:120, ozone_e:240, uv_s:0, uv_e:480, perfume_s:0, perfume_e:480, dry_s:240, dry_e:480 };
+            const cp = config.catpaw_config || {};
             
             const pName = currentMode === 'CATPAW-HELMET' ? 'อบหมวกด้วยน้ำหอม' : 'อบรองเท้าด้วยน้ำหอม';
             const items = [
-                {id:'t_total', n:'TOTAL TIME', s:null, e:cp.t_total, c: 'var(--secondary)'},
-                {id:'uv', n:'อบด้วยยูวีและโอโซน', s:cp.uv_s, e:cp.uv_e},
-                {id:'dust', n:'เป่าฝุ่นด้วยแรงดันลม', s:cp.dust_s, e:cp.dust_e},
-                {id:'bact', n:'ฆ่าเชื้อแบคทีเรีย', s:cp.bact_s, e:cp.bact_e},
-                {id:'dry', n:'อบแห้งด้วยลมร้อน', s:cp.dry_s, e:cp.dry_e},
-                {id:'perfume', n:pName, s:cp.perfume_s, e:cp.perfume_e}
+                {id:'t_total', n:'TOTAL TIME', s:null, e:cp.t_total || 420, c: 'var(--secondary)'},
+                {id:'uv', n:'อบด้วยยูวีและโอโซน', s:cp.uv_s || 0, e:cp.uv_e || 420},
+                {id:'dust', n:'เป่าฝุ่นด้วยแรงดันลม', s:cp.dust_s || 0, e:cp.dust_e || 60},
+                {id:'bact', n:'ฆ่าเชื้อแบคทีเรีย', s:cp.bact_s || 0, e:cp.bact_e || 180},
+                {id:'dry', n:'อบแห้งด้วยลมร้อน', s:cp.dry_s || 0, e:cp.dry_e || 300},
+                {id:'perfume', n:pName, s:cp.perfume_s || 0, e:cp.perfume_e || 420}
             ];
             
             items.forEach(it => { 
@@ -329,15 +354,27 @@
 
     function renderAbout() {
         const box = document.getElementById('about-container');
-        const rows = [["Device ID", config.deviceId || config.MAC],["Firmware ver.", config.ver],["machine system", config.machine_system],["HMI Type", config.HMI],["promotion", config.proMo],["Last update", config.lastedUpdate],["Last maintenance", config.lastedMaintenance]];
+        const rows = [
+            ["Device ID", config.deviceId || config.device_id || config.MAC],
+            ["Firmware ver.", config.ver],
+            ["machine system", config.machine_system || config.machineSystem],
+            ["HMI Type", config.HMI],
+            ["promotion", config.proMo || config.pro_mo],
+            ["Last update", config.lastedUpdate],
+            ["Last maintenance", config.lastedMaintenance]
+        ];
         let html = '<table class="f-table">';
-        rows.forEach(r => { const val = r[1] || '--'; html += `<tr><td style="color:var(--text-muted);width:45%;">${r[0]}</td><td style="font-weight:800;text-align:right;">${val}</td></tr>`; });
+        rows.forEach(r => { const val = r[1] || '--'; html += `<tr><td style="color:var(--text-muted);width:45%;">${r[0]}</td><td style="font-weight:800; text-align:right;">${val}</td></tr>`; });
         box.innerHTML = html + '</table>';
     }
 
     const poll = setInterval(async () => { try { const res=await fetch('/api/action_state'); const d=await res.json(); document.getElementById('val-coin').innerText=d.balance||0; } catch(e){} }, 1000);
     async function init() {
-        try { const res=await fetch('/api/settings'); config=await res.json(); document.getElementById('price-val').innerText=config.startPrices||20; } catch(e){}
+        try { 
+            const res=await fetch('/api/settings'); 
+            config = await res.json(); 
+            document.getElementById('price-val').innerText = config.startPrices || config.start_prices || 20; 
+        } catch(e){}
     }
     init();
 })();

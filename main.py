@@ -66,7 +66,7 @@ def _merge_pending(current: dict, pending: dict) -> dict:
     Pi-only keys are only updated if the incoming value is non-empty."""
     safe = dict(pending)
 
-    # --- 1. Snake to Camel mapping (Compatibility) ---
+    # --- 1. Comprehensive Field Mapping ---
     mapping = {
         "device_id": "deviceId",
         "machine_system": "machineSystem",
@@ -81,56 +81,64 @@ def _merge_pending(current: dict, pending: dict) -> dict:
         "money_mem_active": "moneyMemActive",
         "start_prices": "startPrices",
         "start_timeout": "startTimeout",
+        "heartbeat_inv": "heartbeatInv",
         "pro_mo": "proMo",
-        "debug": "debugMode"
+        "debug": "debugMode",
+        "HMI": "HMI",
+        "ver": "ver",
+        "ssid": "ssid",
+        "wfpwd": "wfpwd"
     }
     
     for old_k, new_k in mapping.items():
-        # Check if ESP sent either the old (snake) or new (camel) version
-        val = None
-        if old_k in safe:
-            val = safe[old_k]
-        elif new_k in safe:
-            val = safe[new_k]
-        
+        val = safe.get(old_k) or safe.get(new_k)
         if val is not None:
-            # Convert [1, 0, ...] to [True, False, ...] for fnEnable
+            # Type conversion for booleans if sent as 0/1
+            if isinstance(val, (int, float)) and "accept" in old_k.lower():
+                val = bool(val)
             if (old_k == "fn_enable" or new_k == "fnEnable") and isinstance(val, list):
                 val = [bool(x) for x in val]
             
-            # FORCE BOTH to be identical in the update dictionary
             safe[old_k] = val
             safe[new_k] = val
-            print(f"[MERGE] Bidirectional Sync: {old_k} <-> {new_k} = {val}")
 
     # --- 2. Handle Pi-only protected keys ---
     for key in _PI_ONLY_KEYS:
         if key in safe:
             incoming = safe[key]
             if not incoming:
-                print(f"[MERGE] SKIP {key} (ESP sent empty)")
                 del safe[key]
-            else:
-                print(f"[MERGE] UPDATE {key} = '{incoming}'")
 
-    # --- 3. Special handling for CATPAW timeline keys ---
-    timeline_keys = ['t_total', 'bact_s', 'bact_e', 'dust_s', 'dust_e', 'uv_s', 'uv_e', 'ozone_s', 'ozone_e', 'dry_s', 'dry_e', 'perfume_s', 'perfume_e']
-    has_timeline = False
-    for k in timeline_keys:
-        if k in safe:
-            if 'catpaw_config' not in current:
-                current['catpaw_config'] = {}
-            current['catpaw_config'][k] = safe[k]
-            # We DONT delete them from safe so they also update top level if exists
-            has_timeline = True
+    # --- 3. CATPAW Config Nesting ---
+    timeline_keys = [
+        't_total', 'bact_s', 'bact_e', 'dust_s', 'dust_e', 
+        'uv_s', 'uv_e', 'ozone_s', 'ozone_e', 'dry_s', 'dry_e', 
+        'perfume_s', 'perfume_e'
+    ]
+    if any(k in safe for k in timeline_keys):
+        if 'catpaw_config' not in current:
+            current['catpaw_config'] = {}
+        for k in timeline_keys:
+            if k in safe:
+                current['catpaw_config'][k] = safe[k]
     
-    if has_timeline:
-        print("[MERGE] Updated catpaw_config from ESP timeline keys")
-
-    # Final Merge
     current.update(safe)
-    print(f"[MERGE] Completed update. Machine System is now: {current.get('machine_system')}")
     return current
+
+def _save_to_pi(config_data: dict):
+    """Utility to safely write config to Global_data.json"""
+    try:
+        path = os.path.join(BASE_DIR, "Global_data.json")
+        with open(path, "r") as f:
+            current = json.load(f)
+        
+        updated = _merge_pending(current, config_data)
+        
+        with open(path, "w") as f:
+            json.dump(updated, f, indent=2)
+        print(f"UART CONFIG: Atomic update success. System: {updated.get('machine_system')}")
+    except Exception as e:
+        print(f"UART CONFIG ERROR (Save): {e}")
 
 # --- 2. Hardware Loop (Real UART) ---
 _partial_line_buffer = ""
@@ -208,26 +216,19 @@ def _parse_line(line: str):
             print(f"UART READ (UNRECOGNIZED CONFIG): {val_str}")
             return
         try:
-            shared_state["pending_config"] = json.loads(val_str)
-            print("UART READ: Config pending update.")
-            
-            # --- Diagnostic Print: What exactly changed? ---
-            try:
-                with open(os.path.join(BASE_DIR, "Global_data.json"), "r") as f:
-                    current_data = json.load(f)
-                for k, v in shared_state["pending_config"].items():
-                    if k not in current_data or current_data[k] != v:
-                        print(f"UART READ: Action = Adds {{{repr(k)}: {repr(v)}}}")
-            except: pass
-
+            config_data = json.loads(val_str)
+            shared_state["pending_config"] = config_data
+            _save_to_pi(config_data) # Auto-save to Pi
         except json.JSONDecodeError:
             print("UART READ: Config JSON Decode Error")
 
     # --- NEW: Handle Raw JSON lines (no prefix) ---
     elif line.startswith("{") and line.endswith("}"):
         try:
-            shared_state["pending_config"] = json.loads(line)
-            print("UART READ: Raw JSON config detected & pending update.")
+            config_data = json.loads(line)
+            shared_state["pending_config"] = config_data
+            _save_to_pi(config_data) # Auto-save to Pi
+            print("UART READ: Raw JSON config detected & saved to Pi.")
         except json.JSONDecodeError as e:
             print(f"UART READ: Raw JSON Decode Error: {e}")
     
@@ -239,8 +240,10 @@ def _parse_line(line: str):
     elif _partial_line_buffer and line.endswith("}"):
         _partial_line_buffer += line
         try:
-            shared_state["pending_config"] = json.loads(_partial_line_buffer)
-            print("UART READ: Reconstructed fragmented JSON successfully.")
+            config_data = json.loads(_partial_line_buffer)
+            shared_state["pending_config"] = config_data
+            _save_to_pi(config_data) # Auto-save to Pi
+            print("UART READ: Reconstructed & saved fragmented JSON.")
             _partial_line_buffer = ""
         except json.JSONDecodeError as e:
             print(f"UART READ: Fragmented JSON Decode Error: {e}")
@@ -360,6 +363,15 @@ async def page_cash(request: Request):
 
     return templates.TemplateResponse(
         request=request, name="pages/cash.html", context={"mode": mode, "prices": prices}
+    )
+
+@app.get("/page/qr")
+async def page_qr(request: Request):
+    shared_state["current_page"] = "qr"
+    send_uart("[State] qr")
+    mode = request.query_params.get("mode")
+    return templates.TemplateResponse(
+        request=request, name="pages/qr.html", context={"mode": mode}
     )
 
 @app.get("/page/maintenance")
