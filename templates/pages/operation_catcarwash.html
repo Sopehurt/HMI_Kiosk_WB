@@ -1,256 +1,108 @@
 <div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column; font-family: sans-serif;">
     <!-- Header -->
     <div style="height:72px; background:#E79124; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 32px;">
-        <div style="display:flex; align-items:center; gap:20px;">
-            <span style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">CATCARWASH Operation</span>
-            <div style="color: white; font-size: 1.2rem; font-weight: bold; background: rgba(0,0,0,0.2); padding: 6px 16px; border-radius: 8px;">
+        <span style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">CATCARWASH Operation</span>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <div style="color:white; font-size:1.3rem; font-weight:bold; background:rgba(0,0,0,0.2); padding:8px 16px; border-radius:8px;">
                 ยอดเงินคงเหลือ: <span class="global-balance-display">0</span> THB
             </div>
-        </div>
-        <div style="display:flex; align-items:center; gap:20px;">
-            <button id="topup-btn" style="
-                background: #3B82F6; border: none; border-radius: 12px;
-                color: white; font-size: 1.2rem; font-weight: bold;
-                padding: 10px 24px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            "
-                onmousedown="this.style.filter='brightness(0.7)'" onmouseup="this.style.filter=''"
-                onclick="topUp()"
-            >TOP UP</button>
-            <button style="background:rgba(0,0,0,0.2); border:none; border-radius:12px; color:white; font-size:1.3rem; font-weight:600; padding:12px 32px; cursor:pointer;"
-                onmousedown="this.style.filter='brightness(0.7)'" onmouseup="this.style.filter=''" onmouseleave="this.style.filter=''"
-                hx-get="/page/cash" hx-target="#content"
-            >Back</button>
+            <button onclick="topUp()" style="background:#3B82F6; color:white; border:none; border-radius:12px; padding:8px 24px; font-weight:bold; font-size:1.1rem; cursor:pointer;">TOP UP</button>
+            <button onclick="navTo('/page/home', '[State] Home')" style="background:rgba(0,0,0,0.2); color:white; border:none; border-radius:12px; padding:8px 24px; font-weight:bold; font-size:1.1rem; cursor:pointer;">Back</button>
         </div>
     </div>
 
-    <!-- Content -->
-    <div style="flex:1; padding:24px 32px; display:flex; flex-direction:column; align-items:center;">
-        
-        <!-- Status Display -->
-        <div style="width:100%; max-width:960px; background:#1E2836; border-radius:16px; padding:16px; text-align:center; margin-bottom:24px; border:2px solid #374151; box-shadow:inset 0 4px 10px rgba(0,0,0,0.3);">
-            <div style="color:#9CA3AF; font-size:1.2rem; font-weight:bold; letter-spacing:3px; margin-bottom:4px;">STATUS</div>
-            <h2 id="status-display" style="color:#F59E0B; font-size:3rem; margin:0; letter-spacing:2px; text-transform:uppercase; text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);">PLEASE SELECT A MODE</h2>
+    <!-- Status Bar -->
+    <div style="padding:20px 32px 0 32px;">
+        <div style="background:#1E2836; border:2px solid #374151; border-radius:16px; padding:15px; text-align:center;">
+            <p style="color:#9CA3AF; font-size:1rem; font-weight:bold; letter-spacing:3px; margin-bottom:5px;">STATUS</p>
+            <h2 id="status-display" style="color:#F59E0B; font-size:2.5rem; margin:0; letter-spacing:2px; text-transform:uppercase;">PLEASE SELECT A MODE</h2>
         </div>
+    </div>
 
-        <!-- Buttons Grid -->
-        <div id="button-container" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px; width:100%; max-width:960px; flex:1;">
-            {% for fn in active_functions %}
-            <button class="op-btn" id="btn-{{ fn.en_name }}" data-fn-id="{{ fn.index }}" data-th-name="{{ fn.name }}" onmousedown="toggleButton('{{ fn.en_name }}', {{ fn.index }})">{{ fn.name }}</button>
-            {% endfor %}
-        </div>
+    <!-- Buttons Grid -->
+    <div style="flex:1; padding:20px 32px; display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(2, 1fr); gap:15px;">
+        {% for fn in active_functions %}
+        <button class="op-btn" id="btn-{{ fn.en_name }}" onclick="toggleFn({{ fn.index }}, '{{ fn.name }}', '{{ fn.en_name }}')" style="
+            background:#1F2937; border:3px solid #374151; border-radius:16px;
+            color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;
+        ">{{ fn.name }}</button>
+        {% endfor %}
+    </div>
 
-        <!-- Finish Button -->
-        <button style="
-            margin-top: 24px;
-            background: linear-gradient(145deg, #EF4444, #DC2626);
-            border: 4px solid #FCA5A5;
-            border-radius: 20px;
-            color: white;
-            font-size: 1.8rem;
-            font-weight: bold;
-            padding: 16px 80px;
-            cursor: pointer;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
-            letter-spacing: 2px;
-        "
-        onmousedown="this.style.filter='brightness(0.7)';"
-        onmouseup="this.style.filter='';"
-        onmouseleave="this.style.filter='';"
-        hx-get="/page/home?src=operation" hx-target="#content"
-        >FINISH</button>
-
-        <!-- Finish overlay -->
-        <div id="finish-overlay" style="display:none; position:absolute; inset:0; background:#111827; justify-content:center; align-items:center; flex-direction:column; gap:40px; z-index:100;">
-            <h2 style="color:#10B981; font-size:6rem; font-weight:bold; letter-spacing:8px; margin:0; text-transform:uppercase; text-shadow:0 0 20px rgba(16,185,129,0.5);">COMPLETED</h2>
-            <button style="background:#3B82F6; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:20px 80px; cursor:pointer; box-shadow:0 6px 15px rgba(0,0,0,0.3);" onmousedown="this.style.filter='brightness(0.7)';" onmouseup="this.style.filter='';" onmouseleave="this.style.filter='';" hx-get="/page/home" hx-target="#content">Return to Home</button>
-        </div>
+    <!-- Finish Button Area -->
+    <div style="height:100px; display:flex; justify-content:center; align-items:center; padding-bottom:15px;">
+        <button onclick="navTo('/page/home', '[State] Home')" style="width:300px; height:70px; background:#EF4444; color:white; border:none; border-radius:16px; font-size:2rem; font-weight:bold; cursor:pointer; box-shadow:0 6px 15px rgba(0,0,0,0.3);">FINISH</button>
     </div>
 </div>
 
 <style>
-    .op-btn {
-        background: linear-gradient(145deg, #2a3342, #1f2937);
-        border: 4px solid #374151;
-        border-radius: 20px;
-        color: #D1D5DB;
-        font-size: 1.6rem;
-        font-weight: bold;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        box-shadow: 6px 6px 15px rgba(0,0,0,0.4);
-        letter-spacing: 1px;
-    }
-    
-    .op-btn:active {
-        filter: brightness(0.7);
-    }
-    
     .op-btn.active {
-        background: linear-gradient(145deg, #3B82F6, #2563EB);
-        border-color: #93C5FD;
-        color: white;
-        box-shadow: 0 0 30px rgba(59, 130, 246, 0.6), inset 0 2px 5px rgba(255,255,255,0.3);
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        background:#3B82F6 !important;
+        border-color:#93C5FD !important;
+        color:white !important;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
     }
-    
-    .op-btn.inactive {
+    .op-btn.disabled {
         opacity: 0.3;
-        filter: grayscale(100%);
         pointer-events: none;
     }
 </style>
 
 <script>
-    let activeModeName = null;
-    let activeModeIndex = null;
-    const statusDisplay = document.getElementById('status-display');
+    (function() {
+        let activeIdx = null;
 
-    function toggleButton(enName, fnIndex) {
-        if (activeModeIndex === fnIndex) {
-            fetch('/api/uart_send?msg=[Action] Off fn(' + fnIndex + ')');
-            deactivateUI();
-        } else if (activeModeIndex === null) {
-            fetch('/api/uart_send?msg=[Action] On fn(' + fnIndex + ')');
-            activateUI(enName);
-        } else {
-            fetch('/api/uart_send?msg=[Action] Off fn(' + activeModeIndex + ')');
-            setTimeout(() => {
-                fetch('/api/uart_send?msg=[Action] On fn(' + fnIndex + ')');
-            }, 100);
-            activateUI(enName);
-        }
-    }
-
-    let lastSeenStateSeq = 0;
-    let lastSeenActionSeq = 0;
-    let isTransitioning = false;
-
-    // Initialize seq to current to avoid triggering on old events
-    fetch('/api/action_state').then(res => res.json()).then(d => {
-        if (d.state_event) lastSeenStateSeq = d.state_event.seq;
-        if (d.action_event) lastSeenActionSeq = d.action_event.seq;
-    }).catch(()=>{});
-
-    const pollTimer = setInterval(async () => {
-        if (isTransitioning) return;
-        try {
-            const res = await fetch('/api/action_state');
-            const d   = await res.json();
-            if (d.state_event && d.state_event.seq > lastSeenStateSeq) {
-                lastSeenStateSeq = d.state_event.seq;
-                if (d.state_event.name === 'Home') {
-                    handleStateHome();
-                }
-            }
-            if (d.action_event && d.action_event.seq > lastSeenActionSeq) {
-                lastSeenActionSeq = d.action_event.seq;
-                const actName = d.action_event.name;
-                if (actName.endsWith(' On')) {
-                    activateUI(actName.replace(' On', ''));
-                } else if (actName.endsWith(' Off')) {
-                    deactivateUI();
-                }
-            }
-            if (d.balance !== undefined && d.balance <= 0) {
-                handleStateHome();
-            }
-        } catch(e) {}
-    }, 800);
-
-    // Initial check
-    fetch('/api/action_state').then(res => res.json()).then(d => {
-        if (d.balance !== undefined && d.balance <= 0) {
-            handleStateHome();
-        }
-    }).catch(()=>{});
-
-    function activateUI(enName) {
-        const allBtns = document.querySelectorAll('.op-btn');
-        let matchedBtn = document.getElementById('btn-' + enName);
-        if (!matchedBtn) return;
-        
-        activeModeIndex = parseInt(matchedBtn.getAttribute('data-fn-id'));
-        activeModeName = matchedBtn.getAttribute('data-th-name');
-
-        allBtns.forEach(b => {
-            if (b === matchedBtn) {
-                b.classList.add('active');
-                b.classList.remove('inactive');
+        window.toggleFn = (idx, thName, enName) => {
+            const btn = document.getElementById('btn-' + enName);
+            if (activeIdx === idx) {
+                fetch('/api/uart_send?msg=[Action] Off fn(' + idx + ')');
+                deactivateUI();
             } else {
-                b.classList.add('inactive');
-                b.classList.remove('active');
+                if (activeIdx !== null) fetch('/api/uart_send?msg=[Action] Off fn(' + activeIdx + ')');
+                setTimeout(() => {
+                    fetch('/api/uart_send?msg=[Action] On fn(' + idx + ')');
+                }, 50);
+                activateUI(idx, thName, enName);
             }
-        });
-        statusDisplay.innerText = activeModeName + ' ACTIVE';
-        statusDisplay.style.color = '#3B82F6';
-        statusDisplay.style.textShadow = '0 0 20px rgba(59, 130, 246, 0.6)';
-    }
+        };
 
-    function deactivateUI() {
-        activeModeIndex = null;
-        activeModeName = null;
-        const allBtns = document.querySelectorAll('.op-btn');
-        allBtns.forEach(b => {
-            b.classList.remove('active', 'inactive');
-        });
-        statusDisplay.innerText = 'PLEASE SELECT A MODE';
-        statusDisplay.style.color = '#F59E0B';
-        statusDisplay.style.textShadow = '0 0 10px rgba(245, 158, 11, 0.3)';
-    }
-
-    function topUp() {
-        fetch('/api/uart_send?msg=[Action] Pause');
-        htmx.ajax('GET', '/page/qr?mode=topup', {target: '#content'});
-    }
-
-    function handleStateHome() {
-        if (isTransitioning) return;
-        isTransitioning = true;
-        // 1. Show Finish Overlay
-        document.getElementById('finish-overlay').style.display = 'flex';
-        // 2. Send [State] Finish
-        fetch('/api/uart_send?msg=[State] Finish');
-        
-        // 3. Switch to Finish Timeout (delay_time[4])
-        timeoutSec = parseInt('{{ delay_time[4] }}') || 0;
-        resetIdleTimer();
-        
-        // Remove the hardcoded 2s timeout to honor delay_time[4]
-        // setTimeout(() => {
-        //     htmx.ajax('GET', '/page/home?src=state_home', {target: '#content'});
-        // }, 2000);
-    }
-
-    // --- Inactivity Timeout ---
-    let timeoutSec = parseInt('{{ delay_time[3] }}') || 0;
-    let idleTimer;
-    function resetIdleTimer() {
-        clearTimeout(idleTimer);
-        if (timeoutSec > 0) {
-            idleTimer = setTimeout(() => {
-                htmx.ajax('GET', '/page/home', {target: '#content'});
-            }, timeoutSec * 1000);
+        function activateUI(idx, thName, enName) {
+            activeIdx = idx;
+            document.querySelectorAll('.op-btn').forEach(b => {
+                b.classList.toggle('active', b.id === 'btn-' + enName);
+                b.classList.toggle('disabled', b.id !== 'btn-' + enName);
+            });
+            const st = document.getElementById('status-display');
+            st.innerText = thName + ' ACTIVE';
+            st.style.color = '#3B82F6';
         }
-    }
-    const events = ['mousedown', 'mousemove', 'keypress', 'touchstart'];
-    events.forEach(evt => document.addEventListener(evt, resetIdleTimer, {passive: true}));
 
-    // --- Balance Check for Auto Finish ---
-    const balListener = function(evt) {
-        if (evt.detail.balance <= 0 && !isTransitioning) {
-            handleStateHome();
+        function deactivateUI() {
+            activeIdx = null;
+            document.querySelectorAll('.op-btn').forEach(b => {
+                b.classList.remove('active', 'disabled');
+            });
+            const st = document.getElementById('status-display');
+            st.innerText = 'PLEASE SELECT A MODE';
+            st.style.color = '#F59E0B';
         }
-    };
-    document.addEventListener('balanceAnimated', balListener);
 
-    document.addEventListener('htmx:beforeSwap', function cleanup() {
-        clearTimeout(idleTimer);
-        clearInterval(pollTimer);
-        events.forEach(evt => document.removeEventListener(evt, resetIdleTimer));
-        document.removeEventListener('balanceAnimated', balListener);
-        document.removeEventListener('htmx:beforeSwap', cleanup);
-    });
-    resetIdleTimer();
+        window.topUp = () => navTo('/page/qr?mode=topup', '[Action] Pause');
+
+        // Simple poll for zero balance
+        const poll = setInterval(async () => {
+            try {
+                const res = await fetch('/api/action_state');
+                const d = await res.json();
+                if (d.balance <= 0) navTo('/page/home', '[State] Home');
+            } catch(e){}
+        }, 1000);
+
+        document.addEventListener('htmx:beforeSwap', () => clearInterval(poll), {once:true});
+    })();
+
+    function navTo(url, uartMsg) {
+        if(uartMsg) fetch('/api/uart_send?msg=' + encodeURIComponent(uartMsg));
+        htmx.ajax('GET', url, {target: '#content'});
+    }
 </script>

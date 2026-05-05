@@ -1,378 +1,137 @@
-<script src="/static/js/qrcode.min.js"></script>
-<div id="qr-root"
-    data-start-price="{{ start_prices }}"
-    data-machine="{{ machine_system }}"
-    data-promo="{{ promo }}"
-    style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column; position:relative;">
-
+<div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column;">
     <!-- Header -->
-    <div style="height:72px; background:#E79124; flex-shrink:0;
-        display:flex; align-items:center; justify-content:space-between; padding:0 32px;">
+    <div style="height:72px; background:#E79124; display:flex; align-items:center; justify-content:space-between; padding:0 32px; flex-shrink:0;">
         <span style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">QR Payment</span>
-        <div style="color:white; font-size:1.4rem; font-weight:bold;
-            background:rgba(0,0,0,0.2); padding:8px 16px; border-radius:8px;">
+        <div style="color:white; font-size:1.3rem; font-weight:bold; background:rgba(0,0,0,0.2); padding:8px 16px; border-radius:8px;">
             ยอดเงินคงเหลือ: <span class="global-balance-display">0</span> THB
         </div>
     </div>
 
-    <!-- Body -->
-    <div style="flex:1; display:flex; gap:0;">
-
-        <!-- Left: Controls -->
-        <div style="width:380px; display:flex; flex-direction:column;
-            justify-content:center; align-items:center; gap:24px; padding:28px; flex-shrink:0;">
-
-            <p style="color:#9CA3AF; font-size:1.2rem; font-weight:bold; letter-spacing:2px;">จำนวนเงิน</p>
-
-            <!-- Promo display -->
-            {% if promo < 1.0 %}
-            <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:-10px;">
-                {% set discount_percent = ((1 - promo) * 100)|int %}
-                <span style="font-size: 1.5rem; color: #EF4444; text-decoration: line-through; font-weight: bold;">{{ start_prices }} THB</span>
-                <span style="font-size: 1rem; color: #10B981; font-weight: bold; background: rgba(16,185,129,0.2); padding: 4px 8px; border-radius: 8px;">โปรโมชั่น -{{ discount_percent }}%</span>
-            </div>
-            {% endif %}
-
-            <!-- Amount display + +/- -->
-            <div style="display:flex; align-items:center; gap:16px;">
-                <button id="btn-minus" style="
-                    width:64px; height:64px; border-radius:12px;
-                    background:#1E2836; color:#F3F4F6;
-                    border:2px solid #374151; font-size:2rem; cursor:pointer;
-                " onmousedown="this.style.filter='brightness(0.7)'" onmouseup="this.style.filter=''"
-                    onclick="changeAmount(-10)">−</button>
-
-                <div style="
-                    background:#1E2836; border:2px solid #374151; border-radius:12px;
-                    padding:14px 0; text-align:center; width:180px; flex-shrink:0;
-                ">
-                    <span id="amount-display" style="
-                        font-size:2.8rem; font-weight:bold; color:#F3F4F6;
-                        display:inline-block; width:90px; text-align:right;
-                    ">0</span>
-                    <span style="color:#9CA3AF; font-size:1.2rem; margin-left:6px;">THB</span>
+    <!-- Content Split -->
+    <div style="flex:1; display:flex;">
+        <!-- Left: Control -->
+        <div style="width:400px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px; border-right:1px solid rgba(255,255,255,0.1); padding:40px;">
+            <p style="color:#9CA3AF; font-size:1.2rem; font-weight:bold; letter-spacing:2px; text-transform:uppercase;">จำนวนเงิน</p>
+            
+            <div style="display:flex; align-items:center; gap:20px;">
+                <button onclick="adj( -10 )" style="width:80px; height:80px; background:#1F2937; color:white; border:2px solid #374151; border-radius:16px; font-size:3rem; cursor:pointer;">-</button>
+                <div style="width:180px; height:100px; background:#111827; border:2px solid #374151; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                    <span id="qr-amount" style="font-size:3.5rem; font-weight:bold; color:white;">10</span>
+                    <span style="font-size:1.2rem; color:#9CA3AF; font-weight:bold; margin-top:15px;">THB</span>
                 </div>
-
-                <button id="btn-plus" style="
-                    width:64px; height:64px; border-radius:12px;
-                    background:#1E2836; color:#F3F4F6;
-                    border:2px solid #374151; font-size:2rem; cursor:pointer;
-                " onmousedown="this.style.filter='brightness(0.7)'" onmouseup="this.style.filter=''"
-                    onclick="changeAmount(10)">+</button>
+                <button onclick="adj( 10 )" style="width:80px; height:80px; background:#1F2937; color:white; border:2px solid #374151; border-radius:16px; font-size:3rem; cursor:pointer;">+</button>
             </div>
 
-            <!-- Status text -->
-            <p id="qr-status" style="color:#9CA3AF; font-size:1rem; min-height:1.4em; text-align:center;"></p>
+            <p style="color:#3B82F6; font-size:1.1rem; font-weight:bold; cursor:pointer; text-decoration:underline; margin-bottom:10px;">Scan the QR to pay</p>
 
-            <!-- Buttons -->
-            <div id="ctrl-ok" style="display:flex; flex-direction:column; gap:12px; width:100%;">
-                <button id="btn-ok" style="
-                    background:#3B82F6; color:white;
-                    border:none; border-radius:12px;
-                    font-size:1.4rem; font-weight:bold;
-                    padding:18px; cursor:pointer; width:100%;
-                " onmousedown="this.style.filter='brightness(0.7)'" onmouseup="this.style.filter=''"
-                    onclick="requestQR()">OK</button>
-
-                <button style="
-                    background:transparent; color:#9CA3AF;
-                    border:1px solid #374151; border-radius:12px;
-                    font-size:1.3rem; padding:14px; cursor:pointer; width:100%;
-                " onmousedown="this.style.filter='brightness(0.7)'" onmouseup="this.style.filter=''"
-                    hx-get="/page/payment{% if mode == 'topup' %}?mode=topup{% endif %}" hx-target="#content">Back</button>
+            <div style="width:100%; display:flex; flex-direction:column; gap:15px;">
+                <button id="btn-qr-ok" onclick="requestQR()" style="width:100%; height:80px; background:#1E3A8A; color:white; font-size:1.8rem; font-weight:bold; border-radius:16px; border:none; cursor:pointer; text-transform:uppercase;">OK</button>
+                <button onclick="navTo('/page/payment', '[State] Home')" style="width:100%; height:60px; background:transparent; color:#9CA3AF; border:1px solid #374151; border-radius:16px; font-size:1.4rem; cursor:pointer;">Back</button>
             </div>
-
-            <!-- Start button (hidden until success) -->
-            <button id="btn-start" style="
-                display:none; background:#10B981; color:white;
-                border:none; border-radius:12px;
-                font-size:1.6rem; font-weight:bold;
-                padding:20px; cursor:pointer; width:100%;
-            " onmousedown="this.style.filter='brightness(0.7)'" onmouseup="this.style.filter=''"
-                onclick="doStart()">{% if mode == 'topup' %}RESUME{% else %}START{% endif %}</button>
-
         </div>
 
-        <!-- Divider -->
-        <div style="width:1px; background:#1F2937; flex-shrink:0;"></div>
-
-        <!-- Right: QR Code -->
-        <div style="flex:1; display:flex; flex-direction:column;
-            justify-content:center; align-items:center; gap:20px;">
-
-            <!-- QR placeholder / image -->
-            <div id="qr-box" style="
-                width:400px; height:400px;
-                background:#1E2836; border-radius:16px;
-                border:2px dashed #374151;
-                display:flex; justify-content:center; align-items:center;
-            ">
-                <span id="qr-placeholder" style="color:#4B5563; font-size:1rem; text-align:center;">
-                    Press OK<br>to generate QR
-                </span>
-                <img id="qr-img" src="" alt="QR" style="
-                    display:none; width:370px; height:370px;
-                    border-radius:8px;
-                ">
-                <div id="local-qr-container" style="display:none; padding:12px; background:white; border-radius:8px;"></div>
+        <!-- Right: Display -->
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; position:relative;">
+            <div id="qr-container" style="width:400px; height:400px; background:white; border-radius:24px; padding:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 40px rgba(255,255,255,0.1);">
+                <div id="qr-placeholder" style="text-align:center; color:#111827;">
+                    <p style="font-weight:bold; font-size:1.2rem;">พร้อมชำระเงิน</p>
+                    <p style="font-size:0.9rem; color:#6B7280;">กดปุ่ม OK เพื่อรับ QR Code</p>
+                </div>
+                <img id="qr-img" src="" style="display:none; width:100%; height:100%; object-fit:contain;">
             </div>
-
-            <p id="qr-amount-label" style="
-                color:#F3F4F6; font-size:1.3rem; font-weight:bold; min-height:1.5em;
-            "></p>
-
+            <p id="qr-status-label" style="font-size:1.5rem; font-weight:bold; color:white; letter-spacing:2px;">10 THB</p>
+            
+            <!-- Overlay for Success/Error - Fixed to only show for new events -->
+            <div id="qr-overlay" style="display:none; position:absolute; inset:0; background:rgba(17,24,39,0.95); z-index:1000; flex-direction:column; align-items:center; justify-content:center; gap:20px; border-radius:0;">
+                <h2 id="overlay-title" style="font-size:5rem; font-weight:bold; margin:0;">SUCCESS</h2>
+                <p id="overlay-msg" style="font-size:1.8rem; color:#9CA3AF;">กำลังเริ่มงาน...</p>
+            </div>
         </div>
-    </div>
-
-    <!-- Finish overlay -->
-    <div id="finish-overlay" style="display:none; position:absolute; inset:0; background:#111827; justify-content:center; align-items:center; flex-direction:column; gap:40px; z-index:100;">
-        <h2 style="color:#10B981; font-size:6rem; font-weight:bold; letter-spacing:8px; margin:0; text-transform:uppercase; text-shadow:0 0 20px rgba(16,185,129,0.5);">COMPLETED</h2>
-        <p style="color:white; font-size:1.5rem;">Returning to Home...</p>
     </div>
 </div>
 
 <script>
-(function() {
-    const root       = document.getElementById('qr-root');
-    const START_PRICE = parseInt(root.dataset.startPrice) || 20;
-    const PROMO       = parseFloat(root.dataset.promo) || 1.0;
-    const FINAL_PRICE = Math.floor(START_PRICE * PROMO);
-    const MACHINE    = root.dataset.machine || 'catcarwash';
+    (function() {
+        let amount = 10;
+        let isWaiting = false;
+        let lastSeenEventSeq = 0;
 
-    let amount   = FINAL_PRICE;
-    let polling  = null;
-    let phase    = 'idle'; // idle | waiting | success | timeout
+        // Initialize sequence on load to ignore past events
+        fetch('/api/action_state').then(r=>r.json()).then(d => {
+            if(d.action_event) lastSeenEventSeq = d.action_event.seq;
+        }).catch(()=>{});
 
-    const amountEl    = document.getElementById('amount-display');
-    const statusEl    = document.getElementById('qr-status');
-    const qrImg       = document.getElementById('qr-img');
-    const qrPH        = document.getElementById('qr-placeholder');
-    const qrAmountLbl = document.getElementById('qr-amount-label');
-    const btnOK       = document.getElementById('btn-ok');
-    const btnStart    = document.getElementById('btn-start');
-    const ctrlOK      = document.getElementById('ctrl-ok');
-    const btnMinus    = document.getElementById('btn-minus');
-    const btnPlus     = document.getElementById('btn-plus');
+        window.adj = (v) => {
+            if (isWaiting) return;
+            amount += v;
+            if (amount < 10) amount = 10;
+            document.getElementById('qr-amount').innerText = amount;
+            document.getElementById('qr-status-label').innerText = amount + ' THB';
+        };
 
-    // init
-    amountEl.textContent = amount;
+        window.requestQR = () => {
+            if (isWaiting) return;
+            isWaiting = true;
+            document.getElementById('btn-qr-ok').style.opacity = '0.5';
+            document.getElementById('qr-placeholder').innerHTML = '<p style="font-weight:bold;">กำลังสร้าง QR...</p>';
+            fetch('/api/uart_send?msg=' + encodeURIComponent('[QR] ' + amount));
+        };
 
-    window.changeAmount = function(delta) {
-        if (phase !== 'idle') return;
-        amount = Math.max(FINAL_PRICE, amount + delta);
-        amountEl.textContent = amount;
-    };
-
-    window.requestQR = function() {
-        if (amount < FINAL_PRICE) return;
-        phase = 'waiting';
-        setControls(false);
-        statusEl.textContent = 'Waiting for QR...';
-        statusEl.style.color = '#9CA3AF';
-        qrAmountLbl.textContent = amount + ' THB';
-        fetch('/api/uart_send?msg=' + encodeURIComponent('[QR] ' + amount));
-        startPolling();
-    };
-
-    window.doStart = async function() {
-        const mode = '{{ mode }}';
-        try {
-            if (mode === 'topup') {
-                await fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Resume'));
-            } else {
-                await fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Start'));
-            }
-        } catch(e) {
-            console.error("Failed to send action:", e);
-        }
-        htmx.ajax('GET', '/page/operation_' + MACHINE, {target: '#content'});
-    };
-
-    function setControls(enabled) {
-        btnMinus.disabled         = !enabled;
-        btnPlus.disabled          = !enabled;
-        btnOK.disabled            = !enabled;
-        btnMinus.style.opacity    = enabled ? '1' : '0.4';
-        btnPlus.style.opacity     = enabled ? '1' : '0.4';
-        btnOK.style.opacity       = enabled ? '1' : '0.4';
-    }
-
-    function showQR(url) {
-        qrPH.style.display = 'none';
-        qrImg.style.display = 'none';
-        
-        const localContainer = document.getElementById('local-qr-container');
-        localContainer.style.display = 'block';
-        localContainer.innerHTML = '';
-        
-        try {
-            new QRCode(localContainer, {
-                text: url,
-                width: 370,
-                height: 370,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.M
-            });
-            document.getElementById('qr-box').style.padding = '0';
-        } catch(e) {
-            console.error("Local QR failed", e);
-            localContainer.style.display = 'none';
-            qrImg.style.display = 'block';
-            qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=370x370&data=' + encodeURIComponent(url);
-            qrImg.onerror = function() {
-                qrImg.onerror = function() {
-                    qrImg.onerror = null;
-                    qrImg.src = 'https://quickchart.io/qr?size=370&text=' + encodeURIComponent(url);
-                };
-                qrImg.src = 'https://chart.googleapis.com/chart?chs=370x370&cht=qr&chl=' + encodeURIComponent(url);
-            };
-            document.getElementById('qr-box').style.padding = '12px';
-        }
-
-        document.getElementById('qr-box').style.borderColor = '#3B82F6';
-        document.getElementById('qr-box').style.background  = 'white';
-    }
-
-    function onSuccess() {
-        clearInterval(polling);
-        phase = 'success';
-        statusEl.textContent = 'Payment successful!';
-        statusEl.style.color = '#10B981';
-        ctrlOK.style.display  = 'none';
-        btnStart.style.display = 'block';
-    }
-
-    function onTimeout() {
-        clearInterval(polling);
-        phase = 'timeout';
-        qrImg.style.display = 'none';
-        qrPH.style.display  = 'flex';
-        qrPH.style.flexDirection = 'column';
-        qrPH.style.color    = '#EF4444';
-        qrPH.innerHTML      = 'TIMEOUT';
-        document.getElementById('qr-box').style.borderColor = '#EF4444';
-        document.getElementById('qr-box').style.background  = '#1E2836';
-        document.getElementById('qr-box').style.padding     = '0';
-        qrAmountLbl.textContent = '';
-        let sec = 5;
-        statusEl.style.color = '#F59E0B';
-        statusEl.textContent = 'Try again in ' + sec + 's';
-        const cd = setInterval(() => {
-            sec--;
-            if (sec <= 0) {
-                clearInterval(cd);
-                resetIdle();
-            } else {
-                statusEl.textContent = 'Try again in ' + sec + 's';
-            }
-        }, 1000);
-    }
-
-    function onError() {
-        clearInterval(polling);
-        phase = 'error';
-        qrImg.style.display = 'none';
-        qrPH.style.display  = 'flex';
-        qrPH.style.flexDirection = 'column';
-        qrPH.style.color    = '#EF4444';
-        qrPH.innerHTML      = 'QR Error';
-        document.getElementById('qr-box').style.borderColor = '#EF4444';
-        document.getElementById('qr-box').style.background  = '#1E2836';
-        document.getElementById('qr-box').style.padding     = '0';
-        qrAmountLbl.textContent = '';
-        statusEl.style.color = '#EF4444';
-        statusEl.textContent = 'QR Error — Cash only at this time';
-        ctrlOK.style.display = 'flex';
-        setControls(true);
-    }
-
-    function resetIdle() {
-        phase = 'idle';
-        qrPH.innerHTML   = 'Press OK<br>to generate QR';
-        qrPH.style.color = '#4B5563';
-        qrPH.style.display = 'block';
-        document.getElementById('qr-box').style.borderColor = '#374151';
-        statusEl.textContent = '';
-        ctrlOK.style.display  = 'flex';
-        btnStart.style.display = 'none';
-        setControls(true);
-    }
-
-    function startPolling() {
-        clearInterval(polling);
-        polling = setInterval(async () => {
+        const poll = setInterval(async () => {
             try {
-                const res  = await fetch('/api/qr_state');
-                const data = await res.json();
-                if (data.status === 'url' && data.url) {
-                    showQR(data.url);
-                    statusEl.textContent = 'Scan the QR to pay';
-                    statusEl.style.color = '#3B82F6';
-                } else if (data.status === 'waiting') {
-                    statusEl.textContent = 'Generating QR Code...';
-                    statusEl.style.color = '#F59E0B';
-                } else if (data.status === 'success') {
-                    onSuccess();
-                } else if (data.status === 'timeout') {
-                    onTimeout();
-                } else if (data.status === 'error') {
-                    onError();
+                const res = await fetch('/api/action_state');
+                const d = await res.json();
+                const state = d.action_event;
+
+                // CRITICAL: Only process if it's a NEW sequence
+                if (!state || state.seq <= lastSeenEventSeq) return;
+                lastSeenEventSeq = state.seq;
+
+                if (state.name === 'QR_URL' || state.name === 'QR_PAYLOAD') {
+                    const img = document.getElementById('qr-img');
+                    const ph = document.getElementById('qr-placeholder');
+                    ph.style.display = 'none';
+                    img.style.display = 'block';
+                    img.src = (state.name === 'QR_URL') ? state.val : 'https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=' + encodeURIComponent(state.val);
                 }
-            } catch(e) {}
-        }, 800);
-    }
 
-    // --- Touch Event to ESP ---
-    function sendTouchToESP() {
-        fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Touch'));
-    }
-    const events = ['mousedown', 'touchstart'];
-    events.forEach(evt => document.addEventListener(evt, sendTouchToESP, {passive: true}));
-
-    // --- UART STATE POLLING ---
-    let lastSeenStateSeq = 0;
-    let lastSeenActionSeq = 0;
-    let isTransitioning = false;
-
-    fetch('/api/action_state').then(res => res.json()).then(d => {
-        if (d.state_event) lastSeenStateSeq = d.state_event.seq;
-        if (d.action_event) lastSeenActionSeq = d.action_event.seq;
-    }).catch(()=>{});
-
-    const pollTimer = setInterval(async () => {
-        if (isTransitioning) return;
-        try {
-            const res = await fetch('/api/action_state');
-            const d   = await res.json();
-            if (d.state_event && d.state_event.seq > lastSeenStateSeq) {
-                lastSeenStateSeq = d.state_event.seq;
-                if (d.state_event.name === 'Home') {
-                    handleStateHome();
+                if (state.name === 'PAYMENT_OK') {
+                    showOverlay('SUCCESS', '#10B981', 'ชำระเงินสำเร็จ กำลังเริ่มงาน...');
+                    clearInterval(poll);
+                    setTimeout(async () => {
+                        const confRes = await fetch('/api/settings');
+                        const conf = await confRes.json();
+                        navTo('/page/operation_' + (conf.machine_system || 'CATCARWASH'));
+                    }, 2000);
+                } else if (state.name === 'PAYMENT_ERROR') {
+                    showOverlay('FAILED', '#EF4444', state.val || 'ชำระเงินผิดพลาด');
+                    setTimeout(hideOverlay, 3000);
+                } else if (state.name === 'PAYMENT_TIMEOUT') {
+                    showOverlay('TIMEOUT', '#F59E0B', 'QR หมดอายุ กรุณาลองใหม่');
+                    setTimeout(hideOverlay, 3000);
                 }
-            }
-            if (d.action_event && d.action_event.seq > lastSeenActionSeq) {
-                lastSeenActionSeq = d.action_event.seq;
-                if (d.action_event.name === 'Start') {
-                    if (phase === 'success' || parseInt(document.querySelector('.global-balance-display').innerText || 0) >= FINAL_PRICE) {
-                        doStart();
-                    }
-                }
-            }
-        } catch(e) {}
-    }, 800);
+            } catch(e){}
+        }, 1000);
 
-    document.addEventListener('htmx:beforeSwap', function cleanup() {
-        clearInterval(polling);
-        clearInterval(pollTimer);
-        events.forEach(evt => document.removeEventListener(evt, sendTouchToESP));
-        document.removeEventListener('htmx:beforeSwap', cleanup);
-    });
+        function showOverlay(title, color, msg) {
+            const ov = document.getElementById('qr-overlay');
+            ov.style.display = 'flex';
+            document.getElementById('overlay-title').innerText = title;
+            document.getElementById('overlay-title').style.color = color;
+            document.getElementById('overlay-msg').innerText = msg;
+        }
 
-    function handleStateHome() {
-        if (isTransitioning) return;
-        isTransitioning = true;
-        htmx.ajax('GET', '/page/home', {target: '#content'});
+        function hideOverlay() {
+            document.getElementById('qr-overlay').style.display = 'none';
+            isWaiting = false;
+            document.getElementById('btn-qr-ok').style.opacity = '1';
+        }
+
+        document.addEventListener('htmx:beforeSwap', () => clearInterval(poll), {once:true});
+    })();
+
+    function navTo(url, uartMsg) {
+        if(uartMsg) fetch('/api/uart_send?msg=' + encodeURIComponent(uartMsg));
+        htmx.ajax('GET', url, {target: '#content'});
     }
-})();
 </script>

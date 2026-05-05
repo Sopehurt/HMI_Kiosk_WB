@@ -35,7 +35,7 @@
             "
                 onmousedown="this.style.filter='brightness(0.7)'"
                 onmouseup="this.style.filter=''"
-                hx-get="/page/cash{% if mode == 'topup' %}?mode=topup{% endif %}" hx-target="#content"
+                onclick="navTo('/page/cash{% if mode %}?mode={{ mode }}{% endif %}', '[State] cash')"
             >เงินสด</button>
 
             <button style="
@@ -47,7 +47,7 @@
             "
                 onmousedown="this.style.filter='brightness(0.7)'"
                 onmouseup="this.style.filter=''"
-                hx-get="/page/qr{% if mode == 'topup' %}?mode=topup{% endif %}" hx-target="#content"
+                onclick="navTo('/page/qr{% if mode %}?mode={{ mode }}{% endif %}', '[State] qr')"
             >QR Code</button>
 
         </div>
@@ -60,7 +60,7 @@
         "
             onmousedown="this.style.filter='brightness(0.7)'"
             onmouseup="this.style.filter=''"
-            hx-get="{% if mode == 'topup' %}/page/operation_{{ machine_system }}{% else %}/page/home{% endif %}" hx-target="#content"
+            onclick="navTo('{% if mode == 'topup' %}/page/operation_{{ machine_system }}{% else %}/page/home{% endif %}', '{% if mode == 'topup' %}[State] operation{% else %}[State] Home{% endif %}')"
         >Back</button>
     </div>
 
@@ -72,6 +72,11 @@
 </div>
 
 <script>
+    function navTo(url, uartMsg) {
+        if(uartMsg) fetch('/api/uart_send?msg=' + encodeURIComponent(uartMsg));
+        htmx.ajax('GET', url, {target: '#content'});
+    }
+
     (function() {
         // --- Touch Event to ESP ---
         function sendTouchToESP() {

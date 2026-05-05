@@ -1,79 +1,64 @@
 <div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column; font-family: sans-serif; overflow:hidden;">
     <!-- Header -->
     <div style="height:72px; background:#E79124; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 32px;">
-        <div style="display:flex; align-items:center; gap:20px;">
-            <span style="font-size:1.8rem; font-weight:900; color:white; letter-spacing:1px;">CATPAW Operation</span>
-            <div style="color:white; font-size:1.4rem; font-weight:bold; background:rgba(0,0,0,0.2); padding:8px 20px; border-radius:12px;">
-                ยอดเงินคงเหลือ: <span class="global-balance-display">0</span> THB
-            </div>
+        <span style="font-size:1.8rem; font-weight:bold; color:white; letter-spacing:1px;">CATPAW Operation</span>
+        <div style="color:white; font-size:1.3rem; font-weight:bold; background:rgba(0,0,0,0.2); padding:8px 20px; border-radius:12px;">
+            ยอดเงินคงเหลือ: <span class="global-balance-display">0</span> THB
         </div>
     </div>
 
     <!-- Main Content Area -->
     <div style="flex:1; display:flex; padding:40px; gap:40px; overflow:hidden;">
         
-        <!-- Left Column: Function List with Indicators -->
-        <div id="function-list" style="flex:1.2; display:flex; flex-direction:column; justify-content:center; gap:20px;">
-            <!-- Rendered via JS: 6 Functions -->
+        <!-- Left Column: Function List -->
+        <div id="function-list" style="flex:1.2; display:flex; flex-direction:column; justify-content:center; gap:25px;">
+            <!-- Rendered via JS -->
         </div>
 
         <!-- Right Column: Status & Timer -->
         <div style="flex:1; display:flex; flex-direction:column; gap:24px;">
             <!-- Big Box -->
-            <div style="flex:1; background:#1E2836; border-radius:24px; border:1px solid #374151; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow:inset 0 4px 15px rgba(0,0,0,0.3);">
-                <span id="status-text" style="color:#9CA3AF; font-size:2rem; font-weight:bold; margin-bottom:20px; letter-spacing:2px;">Running</span>
+            <div style="flex:1; background:#1E2836; border-radius:32px; border:1px solid #374151; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow:inset 0 4px 15px rgba(0,0,0,0.3);">
+                <span id="status-text" style="color:#9CA3AF; font-size:2rem; font-weight:bold; margin-bottom:15px; letter-spacing:2px; text-transform:uppercase;">Running</span>
                 <div style="display:flex; align-items:baseline;">
-                    <span id="main-timer" style="font-size:8rem; font-weight:bold; color:white; line-height:1; font-family:monospace;">---</span>
-                    <span style="font-size:2.5rem; color:#9CA3AF; font-weight:bold; margin-left:15px; letter-spacing:2px;">SEC</span>
+                    <span id="main-timer" style="font-size:10rem; font-weight:bold; color:white; line-height:1; font-family:monospace;">--</span>
+                    <span style="font-size:2rem; color:#9CA3AF; font-weight:bold; margin-left:15px; letter-spacing:2px;">SEC</span>
                 </div>
             </div>
 
             <!-- Controls -->
-            <div style="display:flex; gap:20px; height:100px;">
+            <div style="display:flex; gap:20px; height:120px;">
                 <button id="btn-pause" onclick="cpTogglePause(this)" style="
-                    flex:1; background:#F59E0B; border:none; border-radius:20px;
-                    color:white; font-size:2rem; font-weight:900; cursor:pointer;
+                    flex:1; background:#F59E0B; border:none; border-radius:24px;
+                    color:white; font-size:2rem; font-weight:bold; cursor:pointer;
                 ">PAUSE</button>
                 
-                <button id="btn-finish" onclick="cpForceFinish()" style="
-                    flex:1; background:#EF4444; border:none; border-radius:20px;
-                    color:white; font-size:1.6rem; font-weight:900; cursor:pointer;
+                <button onclick="cpForceFinish()" style="
+                    flex:1; background:#EF4444; border:none; border-radius:24px;
+                    color:white; font-size:1.6rem; font-weight:bold; cursor:pointer;
                 ">FINISH EARLY</button>
             </div>
         </div>
+    </div>
 
-        <!-- Finish overlay -->
-        <div id="finish-container" style="display:none; position:absolute; inset:0; background:#111827; z-index:300; justify-content:center; align-items:center; flex-direction:column; gap:40px;">
-            <h2 style="color:#10B981; font-size:6rem; font-weight:bold; letter-spacing:8px; margin:0; text-transform:uppercase;">COMPLETED</h2>
-            <button style="background:#3B82F6; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:20px 80px; cursor:pointer;" hx-get="/page/home" hx-target="#content">Return to Home</button>
-        </div>
-
-        <!-- Loading Overlay -->
-        <div id="waiting-overlay" style="position:absolute; inset:0; background:rgba(17,24,39,0.95); z-index:200; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:30px;">
-            <div class="loader-ring"></div>
-            <h2 style="color:white; font-size:2rem; letter-spacing:4px;">INITIALIZING...</h2>
-        </div>
-
+    <!-- Finish overlay (minimalist) -->
+    <div id="finish-overlay" style="display:none; position:absolute; inset:0; background:#111827; z-index:300; justify-content:center; align-items:center; flex-direction:column; gap:40px;">
+        <h2 style="color:#10B981; font-size:6rem; font-weight:bold; letter-spacing:10px; margin:0;">COMPLETED</h2>
+        <button style="background:#3B82F6; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:20px 80px; cursor:pointer;" onclick="navTo('/page/home', '[State] Home')">Return to Home</button>
     </div>
 </div>
 
 <style>
-    .loader-ring {
-        width: 60px; height: 60px; border: 6px solid rgba(255,255,255,0.1);
-        border-top: 6px solid #3B82F6; border-radius: 50%; animation: spin 1s linear infinite;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
     .fn-row { display: flex; align-items: center; gap:30px; }
     .fn-circle {
-        width: 64px; height: 64px; border-radius: 50%;
+        width: 50px; height: 50px; border-radius: 50%;
         background: #374151; border: 4px solid #1F2937;
-        flex-shrink: 0;
-        transform: translateZ(0);
-        will-change: background-color, border-color;
-        backface-visibility: hidden;
+        flex-shrink: 0; transition: 0.3s;
     }
     .fn-text { color: white; font-size: 2.2rem; font-weight: bold; }
+    
+    .circle-running { background: #FBBF24 !important; border-color: #FDE047 !important; box-shadow: 0 0 15px rgba(251,191,36,0.5); }
+    .circle-finished { background: #10B981 !important; border-color: #34D399 !important; }
 </style>
 
 <script>
@@ -86,209 +71,98 @@
             {id:'perfume', thai:'อบหมวกด้วยน้ำหอม'}
         ];
 
-        const mainTimer = document.getElementById('main-timer');
-        const statusText = document.getElementById('status-text');
-        const functionList = document.getElementById('function-list');
-        const waitingOverlay = document.getElementById('waiting-overlay');
-
-        let parsedSchedule = null;
         let isPaused = false;
-        let lastSeenSeq = 0;
-        let lastSeenScheduleSeq = 0;
-        let lastSeenActionSeq = 0;
-        let localCountdown = null;
-        let isUnloaded = false;
+        let lastSeenSchedSeq = 0;
+        let parsedSchedule = null;
+        let localTimer = null;
 
-        // Initialize sequences to avoid processing stale events
-        fetch('/api/action_state').then(res => res.json()).then(d => {
-            if (d.state_event) lastSeenSeq = d.state_event.seq;
-            if (d.action_event) lastSeenActionSeq = d.action_event.seq;
-        }).catch(()=>{});
-
-        // Render Initial UI
-        fns.forEach(fn => {
+        // Render functions
+        const container = document.getElementById('function-list');
+        fns.forEach(f => {
             const div = document.createElement('div');
             div.className = 'fn-row';
-            div.innerHTML = `
-                <div class="fn-circle" id="circle-${fn.id}" data-state="off"></div>
-                <span class="fn-text">${fn.thai}</span>
-            `;
-            functionList.appendChild(div);
+            div.innerHTML = `<div class="fn-circle" id="circle-${f.id}"></div><span class="fn-text">${f.thai}</span>`;
+            container.appendChild(div);
         });
+
+        async function poll() {
+            try {
+                const res = await fetch('/api/action_state');
+                const d = await res.json();
+                
+                // 1. Update Timer
+                if (d.countdown !== undefined && d.countdown !== null && d.countdown !== '--') {
+                    document.getElementById('main-timer').innerText = d.countdown;
+                    updateIndicators(parseInt(d.countdown));
+                }
+
+                // 2. Schedule
+                if (d.schedule_event && d.schedule_event.seq > lastSeenSchedSeq) {
+                    lastSeenSchedSeq = d.schedule_event.seq;
+                    parseSchedule(d.schedule_event.raw);
+                }
+
+                // 3. State Check
+                if (d.state_event && d.state_event.name === 'Finish') {
+                    document.getElementById('finish-overlay').style.display = 'flex';
+                }
+            } catch(e){}
+        }
 
         function parseSchedule(raw) {
             const parts = raw.split(',');
-            let sched = {};
+            parsedSchedule = { total: 0 };
             parts.forEach(p => {
                 const kv = p.split(':');
                 if (kv.length !== 2) return;
-                const key = kv[0].trim().toLowerCase();
-                const val = kv[1].trim();
-                
-                if (key === 'total') {
-                    sched.total = parseInt(val) || 0;
-                } else {
-                    const se = val.split('-');
-                    if (se.length === 2) {
-                        sched[key] = { s: parseInt(se[0]), e: parseInt(se[1]) };
-                    }
+                const k = kv[0].trim().toLowerCase();
+                const v = kv[1].trim();
+                if (k === 'total') parsedSchedule.total = parseInt(v);
+                else {
+                    const se = v.split('-');
+                    if (se.length === 2) parsedSchedule[k] = { s: parseInt(se[0]), e: parseInt(se[1]) };
                 }
             });
-            return sched;
         }
 
         function updateIndicators(countdown) {
             if (!parsedSchedule) return;
-            const total = parsedSchedule.total || 0;
-            const elapsed = total - countdown;
-
-            requestAnimationFrame(() => {
-                fns.forEach(fn => {
-                    const times = fn.id === 'uv_ozone' ? parsedSchedule['uv'] : parsedSchedule[fn.id];
-                    const circle = document.getElementById('circle-' + fn.id);
-                    if (circle && times) {
-                        let newState = 'off';
-                        if (elapsed >= times.s && elapsed <= times.e) {
-                            newState = 'running';
-                        } else if (elapsed > times.e) {
-                            newState = 'finished';
-                        }
-                        
-                        if (circle.dataset.state !== newState) {
-                            circle.dataset.state = newState;
-                            if (newState === 'running') {
-                                circle.style.backgroundColor = '#FBBF24';
-                                circle.style.borderColor = '#FDE047';
-                            } else if (newState === 'finished') {
-                                circle.style.backgroundColor = '#10B981';
-                                circle.style.borderColor = '#34D399';
-                            } else {
-                                circle.style.backgroundColor = '#374151';
-                                circle.style.borderColor = '#1F2937';
-                            }
-                        }
-                    }
-                });
+            const elapsed = parsedSchedule.total - countdown;
+            fns.forEach(f => {
+                const times = (f.id === 'uv_ozone') ? parsedSchedule['uv'] : parsedSchedule[f.id];
+                const circle = document.getElementById('circle-' + f.id);
+                if (circle && times) {
+                    circle.classList.remove('circle-running', 'circle-finished');
+                    if (elapsed >= times.s && elapsed <= times.e) circle.classList.add('circle-running');
+                    else if (elapsed > times.e) circle.classList.add('circle-finished');
+                }
             });
         }
 
-        function updateUI() {
-            if (localCountdown === null) return;
-            const newText = String(localCountdown).padStart(1, '0');
-            if (mainTimer.innerText !== newText) {
-                mainTimer.innerText = newText;
-            }
-            if (parsedSchedule) {
-                updateIndicators(localCountdown);
-            }
-        }
-
-        // --- LOCAL SMOOTH TIMER ---
-        let lastTickTime = Date.now();
-        function localTimerLoop() {
-            if (isUnloaded) return;
-            
-            if (localCountdown !== null && !isPaused && localCountdown > 0) {
-                const now = Date.now();
-                if (now - lastTickTime >= 1000) {
-                    localCountdown--;
-                    lastTickTime = now;
-                    updateUI();
-                }
-            } else {
-                lastTickTime = Date.now(); // Keep pushing the tick forward while paused/null
-            }
-            
-            requestAnimationFrame(localTimerLoop);
-        }
-        requestAnimationFrame(localTimerLoop);
-        // --------------------------
-
-        let ignoreEspSyncUntil = 0;
-
-        async function pollState() {
-            if (isUnloaded) return;
-            try {
-                const res = await fetch('/api/action_state');
-                const d   = await res.json();
-                
-                // Parse Schedule
-                if (d.schedule_event && d.schedule_event.seq > lastSeenScheduleSeq) {
-                    lastSeenScheduleSeq = d.schedule_event.seq;
-                    parsedSchedule = parseSchedule(d.schedule_event.raw);
-                    waitingOverlay.style.display = 'none';
-                    localCountdown = parsedSchedule.total || 0;
-                    ignoreEspSyncUntil = Date.now() + 3000;
-                    updateUI();
-                    fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Load Schedule Success'));
-                }
-
-                // Update Countdown (Sync with ESP)
-                if (d.countdown !== undefined && d.countdown !== null && d.countdown !== '--') {
-                    const cd = parseInt(d.countdown);
-                    if (Date.now() < ignoreEspSyncUntil) {
-                        // Ignore stale countdowns from ESP immediately after schedule load
-                    } else if (localCountdown === null) {
-                        localCountdown = cd;
-                        updateUI();
-                    } else if (Math.abs(localCountdown - cd) > 1) {
-                        // Force sync only if desynced by more than 1 second (ESP lag correction)
-                        localCountdown = cd;
-                        updateUI();
-                    }
-                }
-
-                // Handle State Events
-                if (d.state_event && d.state_event.seq > lastSeenSeq) {
-                    lastSeenSeq = d.state_event.seq;
-                    if (d.state_event.name === 'Finish') {
-                        cpForceFinish();
-                    }
-                }
-
-                // Handle Action Events
-                if (d.action_event && d.action_event.seq > lastSeenActionSeq) {
-                    lastSeenActionSeq = d.action_event.seq;
-                    const act = d.action_event.name;
-                    const btn = document.getElementById('btn-pause');
-                    if (act === 'Door open' && !isPaused) {
-                        if (btn) cpTogglePause(btn);
-                    } else if (act === 'Door close' && isPaused) {
-                        if (btn) cpTogglePause(btn);
-                    }
-                }
-            } catch(e) {}
-            
-            if (!isUnloaded) {
-                setTimeout(pollState, 250);
-            }
-        }
-        pollState();
-
-        window.cpTogglePause = function(btn) {
+        window.cpTogglePause = (btn) => {
+            isPaused = !isPaused;
             if (isPaused) {
-                isPaused = false;
-                btn.innerText = 'PAUSE';
-                btn.style.background = '#F59E0B';
-                statusText.innerText = 'Running';
-                fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Resume'));
+                btn.innerText = 'RESUME'; btn.style.background = '#10B981';
+                document.getElementById('status-text').innerText = 'Stopping';
+                fetch('/api/uart_send?msg=[Action] Pause');
             } else {
-                isPaused = true;
-                btn.innerText = 'RESUME';
-                btn.style.background = '#10B981';
-                statusText.innerText = 'Stopping';
-                fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Pause'));
+                btn.innerText = 'PAUSE'; btn.style.background = '#F59E0B';
+                document.getElementById('status-text').innerText = 'Running';
+                fetch('/api/uart_send?msg=[Action] Resume');
             }
         };
 
-        window.cpForceFinish = function() {
-            fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Finish'));
-            document.getElementById('finish-container').style.display = 'flex';
+        window.cpForceFinish = () => {
+            fetch('/api/uart_send?msg=[Action] Finish');
+            document.getElementById('finish-overlay').style.display = 'flex';
         };
 
-        document.addEventListener('htmx:beforeSwap', function cleanup() {
-            isUnloaded = true;
-            document.removeEventListener('htmx:beforeSwap', cleanup);
-        });
+        const interval = setInterval(poll, 800);
+        document.addEventListener('htmx:beforeSwap', () => clearInterval(interval), {once:true});
     })();
+
+    function navTo(url, uartMsg) {
+        if(uartMsg) fetch('/api/uart_send?msg=' + encodeURIComponent(uartMsg));
+        htmx.ajax('GET', url, {target: '#content'});
+    }
 </script>

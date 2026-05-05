@@ -9,7 +9,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; font-family: sans-serif; }
         body { 
             background: #000000; color: white; 
-            width: 100vw; height: 100vh; 
+            width: 1024px; height: 600px; 
             margin: 0; padding: 0;
             display: flex; justify-content: center; align-items: center;
             overflow: hidden; 
@@ -18,7 +18,6 @@
             width: 1024px; height: 600px; 
             background: #111827;
             position: relative;
-            /* Removed shadow for performance on Pi Zero 2W */
         }
         .btn { 
             padding: 25px 50px; font-size: 2rem; border-radius: 20px; 
@@ -31,17 +30,13 @@
 </head>
 <body hx-get="/page/home" hx-trigger="load" hx-target="#content">
 
-    <div id="content">
-        </div>
-
+    <div id="content"></div>
 
     <script>
-        // --- Global Animated Balance Logic ---
         let currentDisplayedBalance = 0;
         let targetBalance = 0;
         let animationInterval = null;
 
-        // Poll the server for balance
         setInterval(async () => {
             try {
                 const res = await fetch('/api/balance_html?t=' + Date.now(), {cache: 'no-store'});
@@ -49,52 +44,37 @@
                 const newBalance = parseInt(text);
                 if (!isNaN(newBalance) && newBalance !== targetBalance) {
                     targetBalance = newBalance;
-                    
-                    // If dropping (e.g. spent or reset), drop instantly or quickly
                     if (newBalance < currentDisplayedBalance) {
                         currentDisplayedBalance = newBalance;
                         updateDisplays(currentDisplayedBalance);
-                    } else {
-                        // If increasing, animate
-                        if (!animationInterval) {
-                            startAnimation();
-                        }
+                    } else if (!animationInterval) {
+                        startAnimation();
                     }
                 }
             } catch(e) {}
-        }, 1000); // Polling every 1s
+        }, 1000);
 
         function startAnimation() {
             animationInterval = setInterval(() => {
                 if (currentDisplayedBalance < targetBalance) {
-                    // Determine step size based on difference
                     const diff = targetBalance - currentDisplayedBalance;
-                    const step = Math.max(1, Math.floor(diff / 10)); // Accelerate if large diff
-                    
+                    const step = Math.max(1, Math.floor(diff / 10));
                     currentDisplayedBalance += step;
                     if (currentDisplayedBalance > targetBalance) currentDisplayedBalance = targetBalance;
-                    
                     updateDisplays(currentDisplayedBalance);
                 } else {
-                    // Reached target
                     clearInterval(animationInterval);
                     animationInterval = null;
                 }
-            }, 50); // Frame rate of count up
+            }, 50);
         }
 
         function updateDisplays(val) {
-            // Update all standard badges
             const badges = document.querySelectorAll('.global-balance-display');
-            badges.forEach(b => {
-                b.innerText = val;
-            });
-            
-            // Dispatch event for complex components (like cash.html)
+            badges.forEach(b => { b.innerText = val; });
             document.dispatchEvent(new CustomEvent('balanceAnimated', { detail: { balance: val } }));
         }
 
-        // Apply current balance immediately to any newly loaded pages
         document.body.addEventListener('htmx:afterSettle', function() {
             updateDisplays(currentDisplayedBalance);
         });
