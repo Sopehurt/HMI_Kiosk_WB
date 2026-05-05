@@ -1,0 +1,175 @@
+<!-- Reconstructed Full Maintenance HTML -->
+<style>
+    :root {
+        --primary: #3B82F6;
+        --secondary: #E79124;
+        --bg-dark: #111827;
+        --bg-panel: #1F2937;
+        --text-main: #F3F4F6;
+        --border: #374151;
+    }
+    * { box-sizing: border-box; -webkit-user-select: none; font-family: 'Inter', sans-serif; }
+    body { background: #111827; color: white; margin:0; overflow: hidden; }
+    .m-container { display: flex; width: 1024px; height: 600px; }
+    .m-sidebar { width: 220px; background: #1F2937; display: flex; flex-direction: column; border-right: 1px solid #374151; }
+    .m-content { flex: 1; padding: 24px; background: #111827; position: relative; overflow-y: auto; }
+    .m-menu-item { padding: 20px 24px; cursor: pointer; color: #9CA3AF; transition: 0.2s; font-weight: 500; font-size: 1.1rem; border-left: 6px solid transparent; }
+    .m-menu-item.active { color: #F3F4F6; background: rgba(255,255,255,0.03); border-left-color: var(--secondary); }
+    .fc-card { background: #1F2937; border: 1px solid #374151; border-radius: 20px; padding: 24px; margin-bottom: 20px; }
+    .fc-input { background: #374151; border: 1px solid #4B5563; color: white; padding: 12px; border-radius: 10px; font-size: 1.2rem; width: 100%; outline: none; }
+    .fc-toggle-btn { padding: 10px 20px; border-radius: 12px; border: 1px solid #374151; background: #1F2937; color: #9CA3AF; font-weight: bold; }
+    .fc-toggle-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    
+    /* Overlay Styles (Numpad/Keyboard) */
+    .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; display:none; justify-content:center; align-items:center; backdrop-filter: blur(8px); }
+    .numpad-grid { display: grid; grid-template-columns: repeat(3, 100px); gap: 15px; }
+    .num-btn { width: 100px; height: 80px; background: #374151; border-radius: 15px; display: flex; justify-content: center; align-items: center; font-size: 2rem; font-weight: bold; cursor: pointer; }
+    .num-btn:active { background: var(--secondary); }
+</style>
+
+<div class="m-container">
+    <div class="m-sidebar">
+        <div style="padding: 24px; border-bottom: 1px solid #374151;">
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--secondary);">MAINTENANCE</div>
+        </div>
+        <div id="menu-setting" class="m-menu-item active" onclick="showPanel('setting')">⚙️ Settings</div>
+        <div id="menu-test" class="m-menu-item" onclick="showPanel('test')">🧪 Test System</div>
+        <div id="menu-wifi" class="m-menu-item" onclick="showPanel('wifi')">🌐 Wi-Fi</div>
+        <div id="menu-about" class="m-menu-item" onclick="showPanel('about')">ℹ️ About</div>
+        <div style="margin-top: auto; padding: 20px;">
+            <button class="fc-toggle-btn" style="width:100%; background:#EF4444; color:white;" onclick="htmx.ajax('GET', '/page/home', {target: '#content'})">EXIT</button>
+        </div>
+    </div>
+    
+    <div class="m-content">
+        <!-- Settings Panel -->
+        <div id="panel-setting">
+            <h2 style="margin-bottom:20px;">Machine Configuration</h2>
+            <div id="settings-container"></div>
+            <button class="fc-toggle-btn active" style="margin-top:20px; width:200px;" onclick="saveConfig()">SAVE ALL</button>
+        </div>
+
+        <!-- Test Panel -->
+        <div id="panel-test" style="display:none;">
+            <h2 style="margin-bottom:20px;">Hardware Diagnostics</h2>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                <div class="fc-card">
+                    <p>Coin Acceptor</p>
+                    <h1 id="val-coin">0</h1>
+                </div>
+                <div class="fc-card">
+                    <p>Bank Acceptor</p>
+                    <h1 id="val-bank">0</h1>
+                </div>
+            </div>
+        </div>
+        
+        <!-- WiFi Panel -->
+        <div id="panel-wifi" style="display:none;">
+            <h2 style="margin-bottom:20px;">Network Connection</h2>
+            <div id="wifi-list" class="fc-card" style="height:300px; overflow-y:auto;"></div>
+            <div class="fc-card" style="margin-top:20px;">
+                <label class="fc-label">Password</label>
+                <input type="password" id="wifi-pass" class="fc-input" readonly onclick="openKeyboard('wifi-pass')">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Numpad Overlay -->
+<div id="numpad-overlay" class="overlay">
+    <div class="fc-card" style="width:400px; display:flex; flex-direction:column; align-items:center;">
+        <input type="text" id="numpad-display" class="fc-input" style="text-align:center; font-size:3rem; margin-bottom:20px;">
+        <div class="numpad-grid">
+            <div class="num-btn" onclick="pressNum('1')">1</div><div class="num-btn" onclick="pressNum('2')">2</div><div class="num-btn" onclick="pressNum('3')">3</div>
+            <div class="num-btn" onclick="pressNum('4')">4</div><div class="num-btn" onclick="pressNum('5')">5</div><div class="num-btn" onclick="pressNum('6')">6</div>
+            <div class="num-btn" onclick="pressNum('7')">7</div><div class="num-btn" onclick="pressNum('8')">8</div><div class="num-btn" onclick="pressNum('9')">9</div>
+            <div class="num-btn" style="background:#EF4444;" onclick="pressNum('CLR')">C</div><div class="num-btn" onclick="pressNum('0')">0</div><div class="num-btn" style="background:#10B981;" onclick="closeNumpad(true)">OK</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentTarget = null;
+    function openKeyboard(id) {
+        currentTarget = id;
+        document.getElementById('numpad-overlay').style.display = 'flex';
+        document.getElementById('numpad-display').value = document.getElementById(id).value;
+    }
+    function pressNum(v) {
+        const d = document.getElementById('numpad-display');
+        if(v === 'CLR') d.value = '';
+        else d.value += v;
+    }
+    function closeNumpad(save) {
+        if(save && currentTarget) document.getElementById(currentTarget).value = document.getElementById('numpad-display').value;
+        document.getElementById('numpad-overlay').style.display = 'none';
+    }
+
+    function showPanel(id) {
+        ['setting', 'test', 'wifi', 'about'].forEach(p => {
+            const el = document.getElementById('panel-' + p);
+            if(el) el.style.display = (p === id ? 'block' : 'none');
+            const menu = document.getElementById('menu-' + p);
+            if(menu) menu.classList.toggle('active', p === id);
+        });
+    }
+
+    async function fetchConfig() {
+        try {
+            const res = await fetch('/api/settings');
+            const data = await res.json();
+            const container = document.getElementById('settings-container');
+            container.innerHTML = '';
+            
+            // Basic Info Card
+            let html = '<div class="fc-card"><h3>Device Info</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:15px;">';
+            html += `<div><label>System</label><input class="fc-input" value="${data.machine_system}" readonly></div>`;
+            html += `<div><label>Version</label><input class="fc-input" value="${data.ver}" readonly></div>`;
+            html += '</div></div>';
+            
+            // Function Config
+            html += '<div class="fc-card"><h3>Functions & Timing</h3><table style="width:100%; border-collapse:collapse; margin-top:15px;">';
+            html += '<tr><th style="text-align:left; padding:8px;">Name</th><th style="text-align:left; padding:8px;">Time (s)</th><th style="text-align:left; padding:8px;">Enable</th></tr>';
+            
+            const fnNames = data.fnNames || data.fn_names || [];
+            const fnTime  = data.fnTime  || data.fn_time || [];
+            const fnEnable = data.fnEnable || data.fn_enable || [];
+            
+            fnNames.forEach((name, i) => {
+                if(name === 'Nan') return;
+                html += `<tr style="border-top:1px solid #374151;">
+                    <td style="padding:8px;">${name}</td>
+                    <td style="padding:8px;"><input type="number" class="fc-input fn-time-input" data-index="${i}" value="${fnTime[i] || 0}" style="width:100px;" onclick="openKeyboard(this)"></td>
+                    <td style="padding:8px;"><button class="fc-toggle-btn fn-enable-btn ${fnEnable[i] ? 'active' : ''}" data-index="${i}" onclick="this.classList.toggle('active')">${fnEnable[i] ? 'ON' : 'OFF'}</button></td>
+                </tr>`;
+            });
+            html += '</table></div>';
+            
+            container.innerHTML = html;
+        } catch(e) { console.error("Load failed", e); }
+    }
+    
+    window.saveConfig = async function() {
+        const timeInputs = document.querySelectorAll('.fn-time-input');
+        const enableBtns = document.querySelectorAll('.fn-enable-btn');
+        let newTimes = [];
+        let newEnables = [];
+        
+        // This is a simplified save for now
+        alert("Saving configuration...");
+        // In a real scenario, we'd gather all inputs and POST to /api/settings
+    }
+
+    // --- Global Polling (Restored to 800ms) ---
+    setInterval(async () => {
+        try {
+            const res = await fetch('/api/action_state');
+            const d = await res.json();
+            if(d.coin_val !== undefined) document.getElementById('val-coin').innerText = d.coin_val;
+            if(d.bank_val !== undefined) document.getElementById('val-bank').innerText = d.bank_val;
+        } catch(e) {}
+    }, 800);
+    
+    fetchConfig();
+</script>

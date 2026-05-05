@@ -1,0 +1,201 @@
+<div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column;">
+
+    <!-- Header -->
+    <div style="
+        height:72px; background:#E79124; flex-shrink:0;
+        display:flex; align-items:center; justify-content:space-between;
+        padding:0 32px;
+    ">
+        <div style="display:flex; align-items:center; gap:20px;">
+            <span style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">Cash Payment</span>
+            <div style="color: white; font-size: 1.2rem; font-weight: bold; background: rgba(0,0,0,0.2); padding: 6px 16px; border-radius: 8px;">
+                ยอดเงินคงเหลือ: <span id="cash-balance" class="global-balance-display">{{ balance }}</span> THB
+            </div>
+        </div>
+        <button style="
+            background:rgba(0,0,0,0.2); border:none; border-radius:12px;
+            color:white; font-size:1.3rem; font-weight:600;
+            padding:12px 32px; cursor:pointer;
+        "
+            onmousedown="this.style.filter='brightness(0.7)'" onmouseup="this.style.filter=''"
+            hx-get="/page/payment{% if mode == 'topup' %}?mode=topup{% endif %}" hx-target="#content"
+        >Back</button>
+    </div>
+
+    <!-- Content -->
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; background: radial-gradient(circle at center, #1f2937 0%, #111827 100%);">
+
+        <!-- Premium Glassmorphism Card -->
+        <div style="
+            background: rgba(30, 40, 54, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 50px 80px;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            min-width: 600px;
+        ">
+            <p style="color:#9CA3AF; font-size:1.5rem; font-weight:bold; letter-spacing:2px; margin-bottom: 20px;">หยอดเหรียญหรือแบงค์</p>
+
+            <!-- Money Display -->
+            <div style="display:flex; align-items:baseline; justify-content:center; gap: 20px; width:100%;">
+                <span id="cash-balance-big" style="font-size: 8rem; font-weight: 800; color: #10B981; line-height: 1; text-shadow: 0 0 30px rgba(16, 185, 129, 0.3);">{{ balance }}</span>
+                <span style="font-size: 3rem; color: #6B7280; font-weight: 300;">/</span>
+                <div style="display:flex; align-items:baseline; gap:12px;">
+                    {% if promo < 1.0 %}
+                        {% set final_price = (start_prices * promo)|int %}
+                        {% set discount_percent = ((1 - promo) * 100)|int %}
+                        <div style="position:relative; display:flex; align-items:baseline; gap:8px;">
+                            <div style="position:absolute; bottom: 100%; left: 0; display:flex; align-items:center; gap:10px; white-space:nowrap; margin-bottom: 5px;">
+                                <span style="font-size: 2rem; color: #EF4444; text-decoration: line-through; font-weight: bold;">{{ start_prices }}</span>
+                                <span style="font-size: 1.1rem; color: #10B981; font-weight: bold; background: rgba(16,185,129,0.2); padding: 4px 8px; border-radius: 8px;">โปรโมชั่น -{{ discount_percent }}%</span>
+                            </div>
+                            <span style="font-size: 4.5rem; font-weight: 600; color: #F3F4F6; line-height: 1;">{{ final_price }}</span>
+                            <span style="font-size: 1.5rem; color: #9CA3AF; font-weight: bold;">THB</span>
+                        </div>
+                    {% else %}
+                        <span style="font-size: 4.5rem; font-weight: 600; color: #F3F4F6; line-height: 1;">{{ start_prices }}</span>
+                        <span style="font-size: 1.5rem; color: #9CA3AF; font-weight: bold;">THB</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div style="width: 100%; height: 12px; background: #374151; border-radius: 6px; margin-top: 32px; overflow: hidden; position: relative;">
+                <div id="cash-progress" style="height: 100%; background: linear-gradient(90deg, #3B82F6, #10B981); width: 0%; transition: width 0.5s ease-out;"></div>
+            </div>
+
+            <!-- Start Button -->
+            <div style="height: 80px; margin-top: 40px; display: flex; align-items: center; justify-content: center; width: 100%;">
+                <button id="start-btn" style="
+                    display: {% if balance >= start_prices %}block{% else %}none{% endif %};
+                    background: linear-gradient(145deg, #10B981, #059669);
+                    border: none; border-radius: 16px; width: 100%; height: 100%;
+                    color: white; font-size: 2rem; font-weight: bold; cursor: pointer;
+                    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+                    transition: transform 0.1s, filter 0.1s;
+                "
+                onmousedown="this.style.transform='scale(0.97)'; this.style.filter='brightness(0.8)';"
+                onmouseup="this.style.transform='scale(1)'; this.style.filter='';"
+                onmouseleave="this.style.transform='scale(1)'; this.style.filter='';"
+                onclick="handleStart()"
+            >{% if mode == 'topup' %}RESUME{% else %}START{% endif %} OPERATION</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        {% if promo < 1.0 %}
+        var startPrice = parseInt('{{ (start_prices * promo)|int }}') || 20;
+        {% else %}
+        var startPrice = parseInt('{{ start_prices }}') || 20;
+        {% endif %}
+        var balanceEl = document.getElementById('cash-balance');
+        var bigBalanceEl = document.getElementById('cash-balance-big');
+        var progressBar = document.getElementById('cash-progress');
+        var startBtn = document.getElementById('start-btn');
+
+        function updateUI(currentBalance) {
+            if (bigBalanceEl) {
+                bigBalanceEl.innerText = currentBalance;
+                
+                // Color formatting: Blue if not enough, Green if ready
+                if (currentBalance >= startPrice) {
+                    bigBalanceEl.style.color = '#10B981'; // Emerald
+                    bigBalanceEl.style.textShadow = '0 0 30px rgba(16, 185, 129, 0.3)';
+                } else {
+                    bigBalanceEl.style.color = '#3B82F6'; // Blue
+                    bigBalanceEl.style.textShadow = '0 0 30px rgba(59, 130, 246, 0.3)';
+                }
+            }
+            if (progressBar) {
+                var percentage = Math.min((currentBalance / startPrice) * 100, 100);
+                progressBar.style.width = percentage + '%';
+            }
+            if (startBtn) {
+                if (currentBalance >= startPrice) {
+                    startBtn.style.display = 'block';
+                } else {
+                    startBtn.style.display = 'none';
+                }
+            }
+        }
+
+        // Initial setup
+        var initialBalance = parseInt('{{ balance }}') || 0;
+        updateUI(initialBalance);
+
+        // Listen to global animated balance event
+        document.addEventListener('balanceAnimated', function(evt) {
+            updateUI(evt.detail.balance);
+        });
+
+        window.handleStart = async function() {
+            const mode = '{{ mode }}';
+            try {
+                if (mode === 'topup') {
+                    await fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Resume'));
+                } else {
+                    await fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Start'));
+                }
+            } catch(e) {
+                console.error("Failed to send action:", e);
+            }
+            htmx.ajax('GET', '/page/operation_{{ machine_system }}', {target: '#content'});
+        };
+
+        // --- Touch Event to ESP ---
+        function sendTouchToESP() {
+            fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Touch'));
+        }
+        const events = ['mousedown', 'touchstart'];
+        events.forEach(evt => document.addEventListener(evt, sendTouchToESP, {passive: true}));
+        document.addEventListener('htmx:beforeSwap', function cleanup() {
+            clearInterval(pollTimer);
+            events.forEach(evt => document.removeEventListener(evt, sendTouchToESP));
+            document.removeEventListener('htmx:beforeSwap', cleanup);
+        });
+
+        // --- UART STATE POLLING ---
+        let lastSeenStateSeq = 0;
+        let lastSeenActionSeq = 0;
+        let isTransitioning = false;
+
+        fetch('/api/action_state').then(res => res.json()).then(d => {
+            if (d.state_event) lastSeenStateSeq = d.state_event.seq;
+            if (d.action_event) lastSeenActionSeq = d.action_event.seq;
+        }).catch(()=>{});
+
+        const pollTimer = setInterval(async () => {
+            if (isTransitioning) return;
+            try {
+                const res = await fetch('/api/action_state');
+                const d   = await res.json();
+                if (d.state_event && d.state_event.seq > lastSeenStateSeq) {
+                    lastSeenStateSeq = d.state_event.seq;
+                    if (d.state_event.name === 'Home') {
+                        handleStateHome();
+                    }
+                }
+                if (d.action_event && d.action_event.seq > lastSeenActionSeq) {
+                    lastSeenActionSeq = d.action_event.seq;
+                    if (d.action_event.name === 'Start') {
+                        let currentBalance = parseInt(bigBalanceEl.innerText) || 0;
+                        if (currentBalance >= startPrice) {
+                            handleStart();
+                        }
+                    }
+                }
+            } catch(e) {}
+        }, 800);
+
+        function handleStateHome() {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            htmx.ajax('GET', '/page/home', {target: '#content'});
+        }
+    })();
+</script>

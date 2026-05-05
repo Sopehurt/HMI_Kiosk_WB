@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMI Kiosk</title>
+    <script src="/static/js/htmx.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; font-family: sans-serif; }
+        body { 
+            background: #0f172a; color: white; 
+            width: 1024px; height: 600px; 
+            overflow: hidden; 
+        }
+        #content { 
+            width: 100%; height: 100%; 
+            display: flex; justify-content: center; align-items: center; 
+        }
+        .btn { 
+            padding: 25px 50px; font-size: 2rem; border-radius: 20px; 
+            border: none; cursor: pointer; transition: 0.2s; 
+        }
+        .btn-green { background: #00e676; color: black; font-weight: bold; }
+        .btn-outline { background: transparent; border: 3px solid white; color: white; }
+        .btn:active { filter: brightness(0.7); }
+    </style>
+</head>
+<body hx-get="/page/home" hx-trigger="load" hx-target="#content">
+
+    <div id="content">
+        </div>
+
+
+    <script>
+        // --- Global Animated Balance Logic ---
+        let currentDisplayedBalance = 0;
+        let targetBalance = 0;
+        let animationInterval = null;
+
+        // Poll the server for balance
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/balance_html?t=' + Date.now(), {cache: 'no-store'});
+                const text = await res.text();
+                const newBalance = parseInt(text);
+                if (!isNaN(newBalance) && newBalance !== targetBalance) {
+                    targetBalance = newBalance;
+                    
+                    // If dropping (e.g. spent or reset), drop instantly or quickly
+                    if (newBalance < currentDisplayedBalance) {
+                        currentDisplayedBalance = newBalance;
+                        updateDisplays(currentDisplayedBalance);
+                    } else {
+                        // If increasing, animate
+                        if (!animationInterval) {
+                            startAnimation();
+                        }
+                    }
+                }
+            } catch(e) {}
+        }, 1000); // Polling every 1s
+
+        function startAnimation() {
+            animationInterval = setInterval(() => {
+                if (currentDisplayedBalance < targetBalance) {
+                    // Determine step size based on difference
+                    const diff = targetBalance - currentDisplayedBalance;
+                    const step = Math.max(1, Math.floor(diff / 10)); // Accelerate if large diff
+                    
+                    currentDisplayedBalance += step;
+                    if (currentDisplayedBalance > targetBalance) currentDisplayedBalance = targetBalance;
+                    
+                    updateDisplays(currentDisplayedBalance);
+                } else {
+                    // Reached target
+                    clearInterval(animationInterval);
+                    animationInterval = null;
+                }
+            }, 50); // Frame rate of count up
+        }
+
+        function updateDisplays(val) {
+            // Update all standard badges
+            const badges = document.querySelectorAll('.global-balance-display');
+            badges.forEach(b => {
+                b.innerText = val;
+            });
+            
+            // Dispatch event for complex components (like cash.html)
+            document.dispatchEvent(new CustomEvent('balanceAnimated', { detail: { balance: val } }));
+        }
+
+        // Apply current balance immediately to any newly loaded pages
+        document.body.addEventListener('htmx:afterSettle', function() {
+            updateDisplays(currentDisplayedBalance);
+        });
+    </script>
+</body>
+</html>

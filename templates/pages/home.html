@@ -1,0 +1,40 @@
+<div id="home-root" 
+    hx-get="/page/payment" hx-target="#content"
+    style="width:1024px; height:600px; background:#0f172a; display:flex; flex-direction:column; justify-content:center; align-items:center; position:relative; overflow:hidden; cursor:pointer;">
+    
+    <!-- Branding Section -->
+    <div style="text-align:center;">
+        <h1 style="font-size:110px; font-weight:700; color:white; margin:0; letter-spacing:2px; font-family:'Inter', sans-serif;">Moderncha</h1>
+        <p style="font-size:26px; color:#94a3b8; margin-top:10px; letter-spacing:1px; font-weight:400;">Tap to start</p>
+    </div>
+
+    <!-- Status Indicator (Bottom Right) -->
+    <div style="position:absolute; bottom:30px; right:30px; display:flex; align-items:center; background:#020617; border:1px solid rgba(16,185,129,0.3); border-radius:40px; padding:6px 14px; gap:8px;">
+        <div style="width:8px; height:8px; background:#10b981; border-radius:50%; box-shadow: 0 0 12px #10b981;"></div>
+        <span style="color:#10b981; font-size:12px; font-weight:800; letter-spacing:1px;">ONLINE</span>
+    </div>
+
+    <!-- Hidden Admin Panel Access (Top Right) -->
+    <div style="position:absolute; top:0; right:0; width:100px; height:100px;" 
+         onclick="event.stopPropagation(); htmx.ajax('GET', '/page/maintenance', {target: '#content'})">
+    </div>
+</div>
+
+<script>
+(function() {
+    // Keep the state polling but remove logic that might interfere with the new UI
+    const poll = setInterval(async () => {
+        try {
+            const res = await fetch('/api/action_state');
+            const d = await res.json();
+            // Optional: Update ONLINE/OFFLINE based on mqtt_status if desired
+            // For now, keeping it static as "ONLINE" per image
+        } catch(e) {}
+    }, 2000);
+
+    document.addEventListener('htmx:beforeSwap', function cleanup() {
+        clearInterval(poll);
+        document.removeEventListener('htmx:beforeSwap', cleanup);
+    });
+})();
+</script>

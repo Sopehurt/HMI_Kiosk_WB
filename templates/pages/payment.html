@@ -1,0 +1,117 @@
+<div style="
+    width: 1024px; height: 600px;
+    background: #111827;
+    display: flex; flex-direction: column;
+">
+    <!-- Header -->
+    <div style="
+        height: 72px; background: #E79124;
+        display: flex; align-items: center; justify-content: space-between; padding: 0 32px;
+        flex-shrink: 0;
+    ">
+        <span style="font-size: 1.7rem; font-weight: bold; color: white; letter-spacing: 2px;">Payment</span>
+        <div style="color: white; font-size: 1.5rem; font-weight: bold; background: rgba(0,0,0,0.2); padding: 8px 16px; border-radius: 8px;">
+            ยอดเงินคงเหลือ: <span class="global-balance-display">0</span> THB
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div style="
+        flex: 1;
+        display: flex; flex-direction: column;
+        justify-content: center; align-items: center;
+        gap: 40px;
+    ">
+        <p style="color: #9CA3AF; font-size: 1.5rem; font-weight: bold; letter-spacing: 2px;">เลือกวิธีการชำระเงิน</p>
+
+        <div style="display: flex; gap: 40px;">
+
+            <button style="
+                width: 300px; height: 150px;
+                background: #1E2836; color: #F3F4F6;
+                border: 2px solid #374151; border-radius: 16px;
+                font-size: 2.2rem; font-weight: bold; letter-spacing: 2px;
+                cursor: pointer;
+            "
+                onmousedown="this.style.filter='brightness(0.7)'"
+                onmouseup="this.style.filter=''"
+                hx-get="/page/cash{% if mode == 'topup' %}?mode=topup{% endif %}" hx-target="#content"
+            >เงินสด</button>
+
+            <button style="
+                width: 300px; height: 150px;
+                background: #1E2836; color: #F3F4F6;
+                border: 2px solid #374151; border-radius: 16px;
+                font-size: 2rem; font-weight: bold; letter-spacing: 2px;
+                cursor: pointer;
+            "
+                onmousedown="this.style.filter='brightness(0.7)'"
+                onmouseup="this.style.filter=''"
+                hx-get="/page/qr{% if mode == 'topup' %}?mode=topup{% endif %}" hx-target="#content"
+            >QR Code</button>
+
+        </div>
+
+        <button style="
+            background: transparent; color: #9CA3AF;
+            border: 1px solid #374151; border-radius: 12px;
+            font-size: 1.3rem; padding: 20px 64px;
+            cursor: pointer; margin-top: 8px;
+        "
+            onmousedown="this.style.filter='brightness(0.7)'"
+            onmouseup="this.style.filter=''"
+            hx-get="{% if mode == 'topup' %}/page/operation_{{ machine_system }}{% else %}/page/home{% endif %}" hx-target="#content"
+        >Back</button>
+    </div>
+
+    <!-- Finish overlay -->
+    <div id="finish-overlay" style="display:none; position:absolute; inset:0; background:#111827; justify-content:center; align-items:center; flex-direction:column; gap:40px; z-index:100;">
+        <h2 style="color:#10B981; font-size:6rem; font-weight:bold; letter-spacing:8px; margin:0; text-transform:uppercase; text-shadow:0 0 20px rgba(16,185,129,0.5);">COMPLETED</h2>
+        <p style="color:white; font-size:1.5rem;">Returning to Home...</p>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // --- Touch Event to ESP ---
+        function sendTouchToESP() {
+            fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Touch'));
+        }
+        const events = ['mousedown', 'touchstart'];
+        events.forEach(evt => document.addEventListener(evt, sendTouchToESP, {passive: true}));
+
+        document.addEventListener('htmx:beforeSwap', function cleanup() {
+            events.forEach(evt => document.removeEventListener(evt, sendTouchToESP));
+            document.removeEventListener('htmx:beforeSwap', cleanup);
+        });
+
+        // --- UART STATE POLLING ---
+        let lastSeenStateSeq = 0;
+        let isTransitioning = false;
+
+        // Initialize seq to current to avoid triggering on old events
+        fetch('/api/action_state').then(res => res.json()).then(d => {
+            if (d.state_event) lastSeenStateSeq = d.state_event.seq;
+        }).catch(()=>{});
+
+        setInterval(async () => {
+            if (isTransitioning) return;
+            try {
+                const res = await fetch('/api/action_state');
+                const d   = await res.json();
+                if (d.state_event && d.state_event.seq > lastSeenStateSeq) {
+                    lastSeenStateSeq = d.state_event.seq;
+                    if (d.state_event.name === 'Home') {
+                        handleStateHome();
+                    }
+                }
+            } catch(e) {}
+        }, 800);
+
+        function handleStateHome() {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            htmx.ajax('GET', '/page/home', {target: '#content'});
+        }
+    })();
+</script>
