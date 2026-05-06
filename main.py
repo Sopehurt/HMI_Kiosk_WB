@@ -310,6 +310,7 @@ async def post_settings(request: Request):
 async def api_action_state():
     return JSONResponse(content={
         "action_event": shared_state.get("last_action_event"),
+        "action_history": shared_state.get("action_history", []),
         "qr_event": shared_state.get("last_qr_event"),
         "state_event": shared_state.get("last_state_event"),
         "schedule_event": shared_state.get("last_schedule_event"),
