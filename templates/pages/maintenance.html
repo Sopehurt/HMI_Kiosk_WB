@@ -39,16 +39,13 @@
     .f-btn-success { background: var(--success); }
     .f-btn-danger { background: var(--danger); }
 
-    /* Custom Scrollbar - Hide but keep scrollable */
     ::-webkit-scrollbar { width: 0px; background: transparent; }
 
-    .f-tabs { display: flex; background: var(--bg-side); padding: 5px; border-radius: 10px; gap: 5px; margin-bottom: 20px; width: fit-content; border: 1px solid var(--border); }
+    .f-tabs { display: flex; background: var(--bg-side); padding: 5px; border-radius: 10px; gap: 5px; margin-bottom: 20px; width: fit-content; border: 1px solid #2d3748; }
     .f-tab { padding: 10px 20px; border: none; border-radius: 6px; font-size: 15px; font-weight: 800; color: var(--text-muted); background: transparent; cursor: pointer; }
     .f-tab.active { background: var(--secondary); color: white; }
 
     .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; display:none; justify-content:center; align-items:center; }
-    
-    /* Large Checkbox */
     input[type="checkbox"].f-check { width: 40px; height: 40px; cursor: pointer; accent-color: var(--primary); }
 </style>
 
@@ -99,10 +96,10 @@
             </div>
 
             <div id="p-wifi" class="page" style="display:none;">
-                <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">WiFi Setup <button class="f-btn f-btn-sm" onclick="scanWifi()">SCAN</button></div>
+                <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">WiFi Setup <button id="btn-scan" class="f-btn f-btn-sm" onclick="scanWifi()">SCAN</button></div>
                 <div class="f-card">
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="text" id="w-ssid" class="f-input" placeholder="SSID" style="text-align:left; flex:1;">
+                        <input type="text" id="w-ssid" class="f-input" placeholder="SSID" style="text-align:left; flex:1;" onclick="openKb(this)">
                         <div style="display:flex; flex:1; position:relative;">
                             <input type="password" id="w-pass" class="f-input" placeholder="PASSWORD" style="text-align:left; flex:1; padding-right:80px;" onclick="openKb(this)">
                             <button id="btn-show" onclick="togglePass()" style="position:absolute; right:5px; top:5px; bottom:5px; width:70px; background:#4a5568; border:none; color:white; border-radius:4px; font-weight:700; font-size:12px;">SHOW</button>
@@ -131,14 +128,12 @@
                 <div class="section-title">Merchant Channel Test</div>
                 <div class="f-card" style="padding:30px;">
                     <div id="ch-grid" style="display:grid; grid-template-rows: 1fr 1fr; gap:30px;">
-                        <!-- Row 1: 1, 3, 5, 7 -->
                         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
                             <button id="btn-ch1" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(1)">CH1</button>
                             <button id="btn-ch3" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(3)">CH3</button>
                             <button id="btn-ch5" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(5)">CH5</button>
                             <button id="btn-ch7" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(7)">CH7</button>
                         </div>
-                        <!-- Row 2: 0, 2, 4, 6 -->
                         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
                             <button id="btn-ch0" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(0)">CH0</button>
                             <button id="btn-ch2" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(2)">CH2</button>
@@ -264,7 +259,15 @@
     }
 
     window.adjPrice = (v) => { let el=document.getElementById('price-val'); let p=parseInt(el.innerText)+v; el.innerText=p<0?0:p; };
-    window.savePrice = () => alert("Price Saved!");
+    window.savePrice = async () => {
+        const p = parseInt(document.getElementById('price-val').innerText);
+        const res = await fetch('/api/settings', {method:'POST', body:JSON.stringify({startPrices:p})});
+        const d = await res.json();
+        if(d.ok) { 
+            sendUart(`[Config] {"startPrices":${p}}`);
+            alert("Price Saved!"); 
+        }
+    };
     window.sendUart = (m) => fetch(`/api/uart_send?msg=${encodeURIComponent(m)}`);
 
     window.openNp = (el, t) => { 
@@ -307,16 +310,52 @@
             document.getElementById('w-status-ssid').innerText=d.ssid?`Connected: ${d.ssid}`:'--'; 
             document.getElementById('w-status-ip').innerText=d.ip?`IP: ${d.ip}`:'--'; 
             
-            // Populate inputs from preference
+            // Fill from config/preference
             if(config.ssid) document.getElementById('w-ssid').value = config.ssid;
             if(config.wfpwd) document.getElementById('w-pass').value = config.wfpwd;
         } catch(e){} 
     };
-    window.connectWifi = async () => { /* ... */ };
-    window.forgetWifi = async () => { /* ... */ };
-    window.scanWifi = async () => { /* ... */ };
+
+    window.scanWifi = async () => {
+        const btn = document.getElementById('btn-scan');
+        btn.innerText = 'SCANNING...'; btn.disabled = true;
+        try {
+            const res = await fetch('/api/wifi/scan');
+            const nets = await res.json();
+            let html = '';
+            nets.forEach(n => {
+                html += `<div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid #2d3748; cursor:pointer;" onclick="selectWifi('${n.ssid}')">
+                    <span style="font-weight:700;">${n.ssid}</span>
+                    <span style="color:var(--primary); font-weight:900;">${n.signal}%</span>
+                </div>`;
+            });
+            document.getElementById('w-list').innerHTML = html || '<div style="padding:15px; text-align:center;">No Networks Found</div>';
+        } catch(e) {}
+        btn.innerText = 'SCAN'; btn.disabled = false;
+    };
+    window.selectWifi = (ssid) => { document.getElementById('w-ssid').value = ssid; };
+
+    window.connectWifi = async () => {
+        const ssid = document.getElementById('w-ssid').value;
+        const pw = document.getElementById('w-pass').value;
+        if(!ssid) return alert("Select SSID");
+        const res = await fetch('/api/wifi/connect', {method:'POST', body:JSON.stringify({ssid:ssid, password:pw})});
+        const d = await res.json();
+        if(d.ok) { alert("Connect Command Sent"); updateWifiStatus(); }
+        else alert("Failed to Send Command");
+    };
+
+    window.forgetWifi = async () => {
+        const ssid = document.getElementById('w-ssid').value;
+        if(!ssid) return alert("Enter/Select SSID to Forget");
+        if(!confirm(`Delete WiFi "${ssid}"?`)) return;
+        const res = await fetch('/api/wifi/forget', {method:'POST', body:JSON.stringify({ssid:ssid})});
+        const d = await res.json();
+        if(d.ok) { alert("WiFi Deleted"); updateWifiStatus(); }
+    };
 
     window.setMode = (m) => { currentMode=m; document.querySelectorAll('.f-tab').forEach(t=>t.classList.toggle('active', t.innerText===m)); renderFn(); };
+    
     function renderFn() {
         const box = document.getElementById('fn-container');
         let html = '<table class="f-table">';
@@ -327,32 +366,60 @@
             const t = config.fnTime || config.fn_time || [15,12,12,12,20,15,15,10];
             const o = config.fnOrder || config.fn_order || [0,1,2,3,4,5,6,7];
             names.forEach((n, i) => { 
-                html += `<tr><td>${n}</td><td><input type="checkbox" class="f-check" ${en[i]?'checked':''}></td><td><input class="f-input" value="${o[i]}" style="width:50px;height:35px;" onclick="openNp(this)"></td><td><input class="f-input" value="${t[i]}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; 
+                html += `<tr data-idx="${i}"><td>${n}</td><td><input type="checkbox" class="f-check" ${en[i]?'checked':''}></td><td><input class="f-input" value="${o[i]}" style="width:50px;height:35px;" onclick="openNp(this)"></td><td><input class="f-input" value="${t[i]}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; 
             });
         } else {
             html += '<tr><th>NAME</th><th style="text-align:center;">Start_Time</th><th style="text-align:center;">End_Time</th></tr>';
             const cp = config.catpaw_config || {};
-            
             const pName = currentMode === 'CATPAW-HELMET' ? 'อบหมวกด้วยน้ำหอม' : 'อบรองเท้าด้วยน้ำหอม';
             const items = [
-                {id:'t_total', n:'TOTAL TIME', s:null, e:cp.t_total || 420, c: 'var(--secondary)'},
+                {id:'t_total', n:'TOTAL TIME', s:null, e:cp.t_total || 420},
                 {id:'uv', n:'อบด้วยยูวีและโอโซน', s:cp.uv_s || 0, e:cp.uv_e || 420},
                 {id:'dust', n:'เป่าฝุ่นด้วยแรงดันลม', s:cp.dust_s || 0, e:cp.dust_e || 60},
                 {id:'bact', n:'ฆ่าเชื้อแบคทีเรีย', s:cp.bact_s || 0, e:cp.bact_e || 180},
                 {id:'dry', n:'อบแห้งด้วยลมร้อน', s:cp.dry_s || 0, e:cp.dry_e || 300},
                 {id:'perfume', n:pName, s:cp.perfume_s || 0, e:cp.perfume_e || 420}
             ];
-            
             items.forEach(it => { 
-                html += `<tr><td style="font-weight:900; color:${it.c || 'white'}">${it.n}</td>
-                    <td style="text-align:center;">${it.s!==null?`<input class="f-input" value="${it.s}" style="width:70px;height:35px;" onclick="openNp(this)">`:''}</td>
-                    <td style="text-align:center;"><input class="f-input" value="${it.e}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; 
+                html += `<tr data-id="${it.id}"><td>${it.n}</td>
+                    <td style="text-align:center;">${it.s!==null?`<input class="f-input f-s" value="${it.s}" style="width:70px;height:35px;" onclick="openNp(this)">`:''}</td>
+                    <td style="text-align:center;"><input class="f-input f-e" value="${it.e}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; 
             });
         }
         box.innerHTML = html + '</table>';
     }
 
-    function renderAbout() {
+    window.saveConfig = async () => {
+        let payload = { machine_system: currentMode };
+        if(currentMode === 'CATCARWASH') {
+            let en = [], t = [], o = [];
+            document.querySelectorAll('#fn-container tr[data-idx]').forEach(tr => {
+                en.push(tr.querySelector('.f-check').checked);
+                o.push(parseInt(tr.querySelectorAll('.f-input')[0].value));
+                t.push(parseInt(tr.querySelectorAll('.f-input')[1].value));
+            });
+            payload.fnEnable = en; payload.fnTime = t; payload.fnOrder = o;
+        } else {
+            let cp = {};
+            document.querySelectorAll('#fn-container tr[data-id]').forEach(tr => {
+                const id = tr.getAttribute('data-id');
+                if(id==='t_total') cp.t_total = parseInt(tr.querySelector('.f-e').value);
+                else {
+                    cp[id+'_s'] = parseInt(tr.querySelector('.f-s').value);
+                    cp[id+'_e'] = parseInt(tr.querySelector('.f-e').value);
+                }
+            });
+            payload.catpaw_config = cp;
+        }
+        const res = await fetch('/api/settings', {method:'POST', body:JSON.stringify(payload)});
+        const d = await res.json();
+        if(d.ok) { 
+            sendUart(`[Config] ${JSON.stringify(payload)}`);
+            alert("Config Saved!"); 
+        }
+    };
+
+    window.renderAbout = () => {
         const box = document.getElementById('about-container');
         const rows = [
             ["Device ID", config.deviceId || config.device_id || config.MAC],
@@ -364,9 +431,9 @@
             ["Last maintenance", config.lastedMaintenance]
         ];
         let html = '<table class="f-table">';
-        rows.forEach(r => { const val = r[1] || '--'; html += `<tr><td style="color:var(--text-muted);width:45%;">${r[0]}</td><td style="font-weight:800; text-align:right;">${val}</td></tr>`; });
+        rows.forEach(r => { html += `<tr><td style="color:var(--text-muted);width:45%;">${r[0]}</td><td style="font-weight:800; text-align:right;">${r[1]||'--'}</td></tr>`; });
         box.innerHTML = html + '</table>';
-    }
+    };
 
     const poll = setInterval(async () => { try { const res=await fetch('/api/action_state'); const d=await res.json(); document.getElementById('val-coin').innerText=d.balance||0; } catch(e){} }, 1000);
     async function init() {

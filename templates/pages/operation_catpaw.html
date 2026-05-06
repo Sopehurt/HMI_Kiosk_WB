@@ -12,7 +12,7 @@
         
         <!-- Left Column: Function List -->
         <div id="function-list" style="flex:1.2; display:flex; flex-direction:column; justify-content:center; gap:25px;">
-            <!-- Rendered via JS -->
+            <!-- Circles rendered via JS -->
         </div>
 
         <!-- Right Column: Status & Timer -->
@@ -24,6 +24,7 @@
                     <span id="main-timer" style="font-size:10rem; font-weight:bold; color:white; line-height:1; font-family:monospace;">--</span>
                     <span style="font-size:2rem; color:#9CA3AF; font-weight:bold; margin-left:15px; letter-spacing:2px;">SEC</span>
                 </div>
+                <div id="door-status" style="margin-top:10px; color:#EF4444; font-weight:bold; font-size:1.2rem; visibility:hidden;">DOOR OPENED</div>
             </div>
 
             <!-- Controls -->
@@ -64,16 +65,17 @@
 <script>
     (function() {
         const fns = [
-            {id:'uv_ozone', thai:'อบด้วยยูวีและโอโซน'},
-            {id:'dust', thai:'เป่าฝุ่นด้วยแรงดันลม'},
-            {id:'bact', thai:'ฆ่าเชื้อแบคทีเรีย'},
-            {id:'dry', thai:'อบแห้งด้วยลมร้อน'},
-            {id:'perfume', thai:'อบหมวกด้วยน้ำหอม'}
+            {id:'uv_ozone', thai:'อบด้วยยูวีและโอโซน', match:['uv','ozone']},
+            {id:'dust', thai:'เป่าฝุ่นด้วยแรงดันลม', match:['dust']},
+            {id:'bact', thai:'ฆ่าเชื้อแบคทีเรีย', match:['bact']},
+            {id:'dry', thai:'อบแห้งด้วยลมร้อน', match:['dry']},
+            {id:'perfume', thai:'อบหมวกด้วยน้ำหอม', match:['perfume']}
         ];
 
         let isPaused = false;
-        let lastSeenSchedSeq = 0;
-        let parsedSchedule = null;
+        let lastActionSeq = 0;
+        let lastStateSeq = 0;
+        let lastSchedSeq = 0;
 
         // Render functions
         const container = document.getElementById('function-list');
@@ -86,51 +88,62 @@
 
         async function poll() {
             try {
-                const res = await fetch('/api/action_state');
+                const res = await fetch('/api/action_state?t=' + Date.now());
                 const d = await res.json();
                 
+                // 1. Countdown from ESP
                 if (d.countdown !== undefined && d.countdown !== null && d.countdown !== '--') {
                     document.getElementById('main-timer').innerText = d.countdown;
-                    updateIndicators(parseInt(d.countdown));
                 }
 
-                if (d.schedule_event && d.schedule_event.seq > lastSeenSchedSeq) {
-                    lastSeenSchedSeq = d.schedule_event.seq;
-                    parseSchedule(d.schedule_event.raw);
+                // 2. Schedule ACK
+                if (d.schedule_event && d.schedule_event.seq > lastSchedSeq) {
+                    lastSchedSeq = d.schedule_event.seq;
+                    fetch('/api/uart_send?msg=[Action] Load Schedule Success');
                 }
 
-                if (d.state_event && d.state_event.name === 'Finish') {
-                    cpForceFinish();
+                // 3. Actions (FnOn, FnOff, Door)
+                if (d.action_event && d.action_event.seq > lastActionSeq) {
+                    lastActionSeq = d.action_event.seq;
+                    handleActionEvent(d.action_event.name);
+                }
+
+                // 4. States (Finish)
+                if (d.state_event && d.state_event.seq > lastStateSeq) {
+                    lastStateSeq = d.state_event.seq;
+                    if (d.state_event.name === 'Finish') {
+                        document.getElementById('finish-overlay').style.display = 'flex';
+                    }
                 }
             } catch(e){}
         }
 
-        function parseSchedule(raw) {
-            const parts = raw.split(',');
-            parsedSchedule = { total: 0 };
-            parts.forEach(p => {
-                const kv = p.split(':');
-                if (kv.length !== 2) return;
-                const k = kv[0].trim().toLowerCase();
-                const v = kv[1].trim();
-                if (k === 'total') parsedSchedule.total = parseInt(v);
-                else {
-                    const se = v.split('-');
-                    if (se.length === 2) parsedSchedule[k] = { s: parseInt(se[0]), e: parseInt(se[1]) };
-                }
-            });
+        function handleActionEvent(name) {
+            console.log("Action Event:", name);
+            if (name.includes('FnOn')) {
+                const fnName = name.split('|')[1]?.toLowerCase() || "";
+                setCircleState(fnName, 'circle-running');
+            } else if (name.includes('FnOff')) {
+                const fnName = name.split('|')[1]?.toLowerCase() || "";
+                setCircleState(fnName, 'circle-finished');
+            } else if (name.includes('Door open')) {
+                document.getElementById('door-status').style.visibility = 'visible';
+            } else if (name.includes('Door close')) {
+                document.getElementById('door-status').style.visibility = 'hidden';
+            }
         }
 
-        function updateIndicators(countdown) {
-            if (!parsedSchedule) return;
-            const elapsed = parsedSchedule.total - countdown;
+        function setCircleState(fnKey, className) {
             fns.forEach(f => {
-                const times = (f.id === 'uv_ozone') ? parsedSchedule['uv'] : parsedSchedule[f.id];
-                const circle = document.getElementById('circle-' + f.id);
-                if (circle && times) {
-                    circle.classList.remove('circle-running', 'circle-finished');
-                    if (elapsed >= times.s && elapsed <= times.e) circle.classList.add('circle-running');
-                    else if (elapsed > times.e) circle.classList.add('circle-finished');
+                if (f.match.some(m => fnKey.includes(m))) {
+                    const circle = document.getElementById('circle-' + f.id);
+                    if (className === 'circle-running') {
+                        circle.classList.remove('circle-finished');
+                        circle.classList.add('circle-running');
+                    } else {
+                        circle.classList.remove('circle-running');
+                        circle.classList.add('circle-finished');
+                    }
                 }
             });
         }

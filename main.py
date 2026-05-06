@@ -6,6 +6,7 @@ import serial
 import threading
 import subprocess
 import queue
+import re
 from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -14,8 +15,6 @@ from fastapi.templating import Jinja2Templates
 from typing import Optional
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VIDEO_PATH = os.path.join(BASE_DIR, "static", "videos")
-
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 app.mount("/video", StaticFiles(directory=os.path.join(BASE_DIR, "video")), name="video")
@@ -24,36 +23,29 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 # --- Global State ---
 shared_state = {
     "balance": 0,
-    "last_action": "",
     "last_action_event": None,
     "last_state_event": None,
     "last_schedule_event": None,
     "countdown": 0,
     "current_page": "home",
     "mqtt_online": False,
-    "mqtt_status": "offline",
-    "pending_config": None,
-    "ozone_val": 0, "uv_val": 0, "temp_val": 0, "humi_val": 0, "dust_val": 0, "flow_val": 0,
 }
 
-_action_seq = 0
-_state_seq = 0
-_partial_line_buffer = ""
 send_queue = queue.Queue()
 
-# --- 1. Helper Functions ---
+# --- Helper Functions ---
 def get_machine_system():
     try:
         with open(os.path.join(BASE_DIR, "Global_data.json"), "r") as f:
             data = json.load(f)
-        return data.get("machine_system", "CATCARWASH")
+        return data.get("machine_system") or data.get("machineSystem") or "CATCARWASH"
     except: return "CATCARWASH"
 
 def get_active_functions():
     try:
         with open(os.path.join(BASE_DIR, "Global_data.json"), "r") as f:
             data = json.load(f)
-        names = data.get("fnNames", [""]*8)
+        names = data.get("fnNames") or data.get("fn_names") or [""]*8
         en_names = ["dust", "bact", "uv", "ozone", "dry", "perfume", "fn7", "fn8"]
         active = []
         for i in range(8):
@@ -62,178 +54,171 @@ def get_active_functions():
         return active
     except: return []
 
-def _save_to_pi(config: dict):
+def _save_to_pi(new_config: dict):
     try:
-        with open(os.path.join(BASE_DIR, "Global_data.json"), "w") as f:
-            json.dump(config, f, indent=2)
+        data = {}
+        path = os.path.join(BASE_DIR, "Global_data.json")
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                data = json.load(f)
+        
+        # KEY MAPPING: Normalize snake_case from ESP to camelCase for Pi where needed
+        mapping = {
+            "start_prices": "startPrices",
+            "start_timeout": "startTimeout",
+            "machine_active": "machineActive",
+            "money_mem_active": "moneyMemActive",
+            "pro_mo": "proMo"
+        }
+        for k, v in new_config.items():
+            final_k = mapping.get(k, k)
+            data[final_k] = v
+            # If it's machine_system, ensure both versions are updated to be safe
+            if final_k in ["machine_system", "machineSystem"]:
+                data["machine_system"] = v
+                data["machineSystem"] = v
+
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2)
+        print(f"PI SAVED: {list(new_config.keys())}")
     except Exception as e:
         print(f"PI SAVE ERROR: {e}")
 
 def _parse_line(line: str):
-    global _action_seq, _state_seq, _partial_line_buffer
     if not line: return
-    print(f"UART READ: {repr(line)}")
-
-    if line.startswith("[State]"):
-        name = line.replace("[State]", "").strip()
-        _state_seq += 1
-        shared_state["last_state_event"] = {"name": name, "seq": _state_seq}
+    # print(f"UART READ: {repr(line)}")
     
-    elif line.startswith("[Balance]"):
-        try:
-            val = int(line.replace("[Balance]", "").strip())
-            shared_state["balance"] = val
+    # 1. Balance
+    if "[Balance]" in line:
+        try: shared_state["balance"] = int(line.split("[Balance]")[1].strip())
+        except: pass
+    elif "Balance =" in line:
+        try: shared_state["balance"] = int(line.split("Balance =")[1].strip().split()[0])
         except: pass
 
+    # 2. State & MQTT
+    if line.startswith("[State]"):
+        shared_state["last_state_event"] = {"name": line.replace("[State]", "").strip(), "seq": time.time()}
     elif "[MQTT]" in line:
         shared_state["mqtt_online"] = ("online" in line.lower())
-        shared_state["mqtt_status"] = "online" if shared_state["mqtt_online"] else "offline"
-
+    
+    # 3. Actions & Config
     elif line.startswith("[Action]"):
         txt = line.replace("[Action]", "").strip()
-        _action_seq += 1
         shared_state["last_action_event"] = {"name": txt, "val": "", "seq": time.time()}
-        if "Balance =" in txt:
-            try: shared_state["balance"] = int(txt.split("=")[1].strip())
-            except: pass
-        if "MQTT" in txt.upper() and "ONLINE" in txt.upper():
-            shared_state["mqtt_online"] = True
-
     elif line.startswith("[Config]"):
         try:
             val_str = line.split("[Config]")[1].strip()
             if "|" in val_str: val_str = val_str.split("|", 1)[1]
-            config_data = json.loads(val_str)
-            _save_to_pi(config_data)
+            _save_to_pi(json.loads(val_str))
         except: pass
-
-    elif line.startswith("{") and line.endswith("}"):
+    elif "{" in line and "}" in line:
+        # Robust JSON detection: find the outermost { }
         try:
-            config_data = json.loads(line)
-            _save_to_pi(config_data)
+            start = line.find("{")
+            end = line.rfind("}") + 1
+            json_str = line[start:end]
+            _save_to_pi(json.loads(json_str))
         except: pass
-
-    elif line.startswith("{") and not line.endswith("}"):
-        _partial_line_buffer = line
-    elif _partial_line_buffer and line.endswith("}"):
-        _partial_line_buffer += line
-        try:
-            config_data = json.loads(_partial_line_buffer)
-            _save_to_pi(config_data)
-        except: pass
-        _partial_line_buffer = ""
-    elif _partial_line_buffer:
-        _partial_line_buffer += line
-
-    elif ":" in line and any(x in line for x in ["QR_", "PAYMENT_", "WAITING_"]):
-        parts = line.split(":", 1)
-        shared_state["last_action_event"] = {"name": parts[0].strip(), "val": parts[1].strip(), "seq": time.time()}
-
     elif line.startswith("[Count down]"):
         shared_state["countdown"] = line.split("[Count down]")[1].strip()
-
     elif line.startswith("[Schedule]"):
-        raw = line.replace("[Schedule]", "").strip()
-        shared_state["last_schedule_event"] = {"raw": raw, "seq": time.time()}
+        shared_state["last_schedule_event"] = {"raw": line.replace("[Schedule]", "").strip(), "seq": time.time()}
 
 def uart_worker():
     while True:
         try:
             ser = serial.Serial('/dev/ttyAMA0', 115200, timeout=0.1)
-            print("UART: Connected to /dev/ttyAMA0")
+            line_buf = ""
             while True:
-                # 1. Read
                 if ser.in_waiting > 0:
-                    line = ser.readline().decode('utf-8', errors='ignore').strip()
-                    if line: _parse_line(line)
-                
-                # 2. Write
-                try:
-                    while not send_queue.empty():
-                        msg = send_queue.get_nowait()
-                        print(f"UART SEND: {msg}")
-                        ser.write((msg + "\n").encode('utf-8'))
-                        send_queue.task_done()
-                except queue.Empty:
-                    pass
-                
+                    raw = ser.read(ser.in_waiting).decode('utf-8', errors='ignore')
+                    line_buf += raw
+                    if "\n" in line_buf:
+                        lines = line_buf.split("\n")
+                        for l in lines[:-1]:
+                            l = l.strip()
+                            if l: _parse_line(l)
+                        line_buf = lines[-1]
+                while not send_queue.empty():
+                    msg = send_queue.get_nowait()
+                    ser.write((msg + "\n").encode('utf-8'))
+                    send_queue.task_done()
                 time.sleep(0.01)
-        except Exception as e:
-            print(f"UART WORKER ERROR: {e}")
-            time.sleep(2)
-
-def send_uart(msg: str):
-    send_queue.put(msg)
+        except: time.sleep(2)
 
 threading.Thread(target=uart_worker, daemon=True).start()
 
-# --- Routes ---
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+async def index(request: Request): return templates.TemplateResponse(request=request, name="index.html")
 
 @app.get("/page/home")
 async def page_home(request: Request):
     shared_state["current_page"] = "home"
-    send_uart("[State] Home")
+    send_queue.put("[State] Home")
     return templates.TemplateResponse(request=request, name="pages/home.html", context={"videos": []})
 
 @app.get("/page/payment")
 async def page_payment(request: Request):
     shared_state["current_page"] = "payment"
-    send_uart("[State] payment")
+    send_queue.put("[State] payment")
     return templates.TemplateResponse(request=request, name="pages/payment.html", context={"machine_system": get_machine_system()})
 
 @app.get("/page/cash")
 async def page_cash(request: Request):
     shared_state["current_page"] = "cash"
-    send_uart("[State] cash")
+    send_queue.put("[State] cash")
     return templates.TemplateResponse(request=request, name="pages/cash.html")
 
 @app.get("/page/qr")
 async def page_qr(request: Request):
     shared_state["current_page"] = "qr"
-    send_uart("[State] qr")
+    send_queue.put("[State] qr")
     return templates.TemplateResponse(request=request, name="pages/qr.html")
 
 @app.get("/page/operation_CATCARWASH")
 async def page_op_carwash(request: Request):
     shared_state["current_page"] = "operation"
-    send_uart("[State] operation")
-    active_fns = get_active_functions()
-    return templates.TemplateResponse(request=request, name="pages/operation_catcarwash.html", context={"active_functions": active_fns})
+    send_queue.put("[State] operation")
+    return templates.TemplateResponse(request=request, name="pages/operation_catcarwash.html", context={"active_functions": get_active_functions()})
 
 @app.get("/page/operation_CATPAW")
 @app.get("/page/operation_CATPAW-SHOE")
 @app.get("/page/operation_CATPAW-HELMET")
 async def page_op_catpaw(request: Request):
     shared_state["current_page"] = "operation"
-    send_uart("[State] operation")
+    send_queue.put("[State] operation")
     mode = "helmet" if "HELMET" in request.url.path else "shoe"
     return templates.TemplateResponse(request=request, name="pages/operation_catpaw.html", context={"mode": mode})
 
 @app.get("/page/maintenance")
 async def page_maint(request: Request):
-    send_uart("[State] maintenance")
+    send_queue.put("[State] maintenance")
     return templates.TemplateResponse(request=request, name="pages/maintenance.html")
 
-# --- API ---
 @app.get("/api/balance_html")
-async def get_balance_html():
-    return HTMLResponse(content=str(shared_state["balance"]))
+async def get_balance_html(): return HTMLResponse(content=str(shared_state["balance"]))
 
 @app.get("/api/settings")
 async def get_settings():
     try:
-        with open(os.path.join(BASE_DIR, "Global_data.json"), "r") as f:
-            data = json.load(f)
-        return JSONResponse(content=data)
+        with open(os.path.join(BASE_DIR, "Global_data.json"), "r") as f: return JSONResponse(content=json.load(f))
     except: return JSONResponse(content={}, status_code=500)
+
+@app.post("/api/settings")
+async def post_settings(request: Request):
+    try:
+        new_data = await request.json()
+        _save_to_pi(new_data)
+        return {"ok": True}
+    except: return {"ok": False}
 
 @app.get("/api/action_state")
 async def api_action_state():
     return JSONResponse(content={
         "action_event": shared_state.get("last_action_event"),
+        "state_event": shared_state.get("last_state_event"),
+        "schedule_event": shared_state.get("last_schedule_event"),
         "mqtt_online": shared_state.get("mqtt_online", False),
         "countdown": shared_state.get("countdown", "--"),
         "balance": shared_state.get("balance", 0)
@@ -241,5 +226,45 @@ async def api_action_state():
 
 @app.get("/api/uart_send")
 async def api_uart_send(msg: str):
-    send_uart(msg)
+    send_queue.put(msg)
     return {"ok": True}
+
+# --- WiFi API ---
+@app.get("/api/wifi/status")
+async def wifi_status():
+    try:
+        ssid = subprocess.check_output("iwgetid -r", shell=True).decode().strip()
+        ip = subprocess.check_output("hostname -I", shell=True).decode().split()[0]
+        return {"ssid": ssid, "ip": ip}
+    except: return {"ssid": None, "ip": None}
+
+@app.get("/api/wifi/scan")
+async def wifi_scan():
+    try:
+        output = subprocess.check_output("sudo nmcli -t -f SSID,SIGNAL dev wifi", shell=True).decode()
+        nets = []
+        for line in output.split('\n'):
+            if ':' in line:
+                p = line.rsplit(':', 1)
+                if p[0] and not any(n['ssid'] == p[0] for n in nets):
+                    nets.append({"ssid": p[0], "signal": p[1]})
+        return nets[:10]
+    except: return []
+
+@app.post("/api/wifi/connect")
+async def wifi_connect(request: Request):
+    try:
+        d = await request.json()
+        ssid, pw = d.get("ssid"), d.get("password")
+        subprocess.run(f'sudo nmcli dev wifi connect "{ssid}" password "{pw}"', shell=True, timeout=15)
+        return {"ok": True}
+    except: return {"ok": False}
+
+@app.post("/api/wifi/forget")
+async def wifi_forget(request: Request):
+    try:
+        d = await request.json()
+        ssid = d.get("ssid")
+        subprocess.run(f'sudo nmcli connection delete "{ssid}"', shell=True)
+        return {"ok": True}
+    except: return {"ok": False}
