@@ -221,24 +221,28 @@ def _parse_line(line: str):
 def uart_worker():
     while True:
         try:
-            ser = serial.Serial('/dev/ttyAMA0', 115200, timeout=0.1)
+            # Use serial0 (primary UART) for better compatibility
+            ser = serial.Serial('/dev/serial0', 115200, timeout=0.1)
             line_buf = ""
+            print("UART Connected successfully on /dev/serial0")
             while True:
                 if ser.in_waiting > 0:
                     raw = ser.read(ser.in_waiting).decode('utf-8', errors='ignore')
                     line_buf += raw
-                    if "\n" in line_buf:
-                        lines = line_buf.split("\n")
-                        for l in lines[:-1]:
-                            l = l.strip()
-                            if l: _parse_line(l)
-                        line_buf = lines[-1]
+                    while "\n" in line_buf:
+                        line, line_buf = line_buf.split("\n", 1)
+                        if line.strip():
+                            uart_parser(line.strip())
+                
+                # Send messages from queue
                 while not send_queue.empty():
-                    msg = send_queue.get_nowait()
+                    msg = send_queue.get()
                     ser.write((msg + "\n").encode('utf-8'))
-                    send_queue.task_done()
+                
                 time.sleep(0.01)
-        except: time.sleep(2)
+        except Exception as e:
+            print(f"UART Error: {e}. Retrying in 2s...")
+            time.sleep(2)
 
 threading.Thread(target=uart_worker, daemon=True).start()
 
