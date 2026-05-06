@@ -218,30 +218,48 @@ def _parse_line(line: str):
     elif line.startswith("[Schedule]"):
         shared_state["last_schedule_event"] = {"raw": line.replace("[Schedule]", "").strip(), "seq": time.time()}
 
+import logging
+
+# Setup local file logging for UART
+uart_logger = logging.getLogger('uart_debug')
+uart_logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('/home/chokun/HMI_Kiosk_WB/uart.log')
+fh.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+uart_logger.addHandler(fh)
+
 def uart_worker():
+    uart_logger.info("UART Worker Thread Started")
+    print("UART Worker Thread Started", flush=True)
     while True:
         try:
-            # Use serial0 (primary UART) for better compatibility
-            ser = serial.Serial('/dev/serial0', 115200, timeout=0.1)
-            line_buf = ""
-            print("UART Connected successfully on /dev/serial0")
+            # Use serial0 (primary UART)
+            ser = serial.Serial('/dev/serial0', 115200, timeout=1.0)
+            msg = "UART Connected successfully on /dev/serial0"
+            print(msg, flush=True)
+            uart_logger.info(msg)
+            
+            ser.flushInput()
+            ser.flushOutput()
+            
             while True:
                 if ser.in_waiting > 0:
-                    raw = ser.read(ser.in_waiting).decode('utf-8', errors='ignore')
-                    line_buf += raw
-                    while "\n" in line_buf:
-                        line, line_buf = line_buf.split("\n", 1)
-                        if line.strip():
-                            uart_parser(line.strip())
+                    line = ser.readline().decode('utf-8', errors='ignore').strip()
+                    if line:
+                        print(f"UART RX: {line}", flush=True)
+                        uart_logger.info(f"RX: {line}")
+                        _parse_line(line)
                 
                 # Send messages from queue
                 while not send_queue.empty():
                     msg = send_queue.get()
                     ser.write((msg + "\n").encode('utf-8'))
+                    uart_logger.info(f"TX: {msg}")
                 
-                time.sleep(0.01)
+                time.sleep(0.05)
         except Exception as e:
-            print(f"UART Error: {e}. Retrying in 2s...")
+            err_msg = f"UART Error: {e}. Retrying in 2s..."
+            print(err_msg, flush=True)
+            uart_logger.error(err_msg)
             time.sleep(2)
 
 threading.Thread(target=uart_worker, daemon=True).start()
