@@ -261,7 +261,11 @@
     window.adjPrice = (v) => { let el=document.getElementById('price-val'); let p=parseInt(el.innerText)+v; el.innerText=p<0?0:p; };
     window.savePrice = async () => {
         const p = parseInt(document.getElementById('price-val').innerText);
-        const res = await fetch('/api/settings', {method:'POST', body:JSON.stringify({startPrices:p})});
+        const res = await fetch('/api/settings', {
+            method:'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body:JSON.stringify({startPrices:p})
+        });
         const d = await res.json();
         if(d.ok) { 
             sendUart(`[Config] Preference|{"startPrices":${p}}`);
@@ -346,16 +350,24 @@
         if(!ssid) return alert("Select SSID");
         
         // 1. Update Preference first
-        await fetch('/api/settings', {method:'POST', body:JSON.stringify({ssid:ssid, wfpwd:pw})});
+        await fetch('/api/settings', {
+            method:'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body:JSON.stringify({ssid:ssid, wfpwd:pw})
+        });
         
         // 2. Send to ESP32 with the new format
         sendUart(`[Config] Preference|{"ssid":"${ssid}", "wfpwd":"${pw}"}`);
         
         // 3. Trigger actual connection
-        const res = await fetch('/api/wifi/connect', {method:'POST', body:JSON.stringify({ssid:ssid, password:pw})});
+        const res = await fetch('/api/wifi/connect', {
+            method:'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body:JSON.stringify({ssid:ssid, password:pw})
+        });
         const d = await res.json();
         if(d.ok) { alert("Connect Command Sent"); updateWifiStatus(); }
-        else alert("Failed to Send Command");
+        else alert("Failed: " + (d.msg || "Unknown error"));
     };
 
     window.forgetWifi = async () => {
@@ -424,7 +436,11 @@
             });
             payload.catpaw_config = cp;
         }
-        const res = await fetch('/api/settings', {method:'POST', body:JSON.stringify(payload)});
+        const res = await fetch('/api/settings', {
+            method:'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body:JSON.stringify(payload)
+        });
         const d = await res.json();
         if(d.ok) { 
             sendUart(`[Config] Preference|${JSON.stringify(payload)}`);

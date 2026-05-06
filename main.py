@@ -8,7 +8,7 @@ import subprocess
 import queue
 import re
 from datetime import datetime
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Body
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -294,13 +294,40 @@ async def wifi_scan():
     except: return []
 
 @app.post("/api/wifi/connect")
-async def wifi_connect(request: Request):
+async def api_wifi_connect(data: dict = Body(...)):
+    ssid = data.get("ssid")
+    password = data.get("password")
+    if not ssid: return {"ok": False, "msg": "SSID required"}
+    
+    # Use a more robust nmcli command with Smart Fallback
     try:
-        d = await request.json()
-        ssid, pw = d.get("ssid"), d.get("password")
-        subprocess.run(f'sudo nmcli dev wifi connect "{ssid}" password "{pw}"', shell=True, timeout=15)
-        return {"ok": True}
-    except: return {"ok": False}
+        # 1. Clean up any existing profile with this SSID
+        subprocess.run(f'sudo nmcli connection delete "{ssid}"', shell=True, capture_output=True)
+        time.sleep(1)
+        
+        # 2. First attempt: Try with password (Standard for WPA2/Hotspot)
+        cmd_with_pass = f'sudo nmcli device wifi connect "{ssid}" password "{password}"'
+        process = subprocess.run(cmd_with_pass, shell=True, capture_output=True, text=True, timeout=45)
+        
+        if process.returncode == 0:
+            return {"ok": True}
+        
+        # 3. Fallback: If failed (likely Open WiFi or Key-mgmt error), try without password
+        # This is common for dormitory WiFi or public networks.
+        cmd_open = f'sudo nmcli device wifi connect "{ssid}"'
+        process_open = subprocess.run(cmd_open, shell=True, capture_output=True, text=True, timeout=45)
+        
+        if process_open.returncode == 0:
+            return {"ok": True, "msg": "Connected as Open Network"}
+            
+        # 4. If both failed, return the most relevant error
+        err = process_open.stderr.strip() or process.stdout.strip() or process.stderr.strip()
+        return {"ok": False, "msg": err or "Failed to connect"}
+        
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "msg": "Connection timeout (45s)"}
+    except Exception as e:
+        return {"ok": False, "msg": str(e)}
 
 @app.post("/api/wifi/forget")
 async def wifi_forget(request: Request):
