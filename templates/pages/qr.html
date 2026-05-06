@@ -1,4 +1,4 @@
-<div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column;" onclick="fetch('/api/uart_send?msg=[Action] Touch')">
+<div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column;" onclick="handleGlobalClick()">
     <!-- Header -->
     <div style="height:72px; background:#E79124; display:flex; align-items:center; justify-content:space-between; padding:0 32px; flex-shrink:0;">
         <span style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">QR Payment</span>
@@ -56,14 +56,41 @@
         let isWaiting = false;
         let lastSeenActionSeq = 0;
         let lastSeenQrSeq = 0;
+        let lastSeenStateSeq = 0;
+        
+        // Timeout logic for topup mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const isTopup = urlParams.get('mode') === 'topup';
+        let timeoutSec = 120;
+        let timeoutTimer = null;
 
         // Auto send [QR] wait on load
         fetch('/api/uart_send?msg=' + encodeURIComponent('[QR] wait'));
+
+        if (isTopup) {
+            console.log("Topup mode active: 2-minute timeout enabled.");
+            timeoutTimer = setInterval(async () => {
+                timeoutSec--;
+                if (timeoutSec <= 0) {
+                    clearInterval(timeoutTimer);
+                    const confRes = await fetch('/api/settings');
+                    const conf = await confRes.json();
+                    navTo('/page/operation_' + (conf.machine_system || 'CATCARWASH'), '[Action] Resume');
+                }
+            }, 1000);
+        }
+
+        // Global click listener to reset timeout and send Touch action
+        window.handleGlobalClick = () => {
+            fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Touch'));
+            if (isTopup) timeoutSec = 120; // Reset timer
+        };
 
         // Initialize sequences on load to ignore past events
         fetch('/api/action_state').then(r=>r.json()).then(d => {
             if(d.action_event) lastSeenActionSeq = d.action_event.seq;
             if(d.qr_event) lastSeenQrSeq = d.qr_event.seq;
+            if(d.state_event) lastSeenStateSeq = d.state_event.seq;
         }).catch(()=>{});
 
         window.adj = (v) => {
@@ -107,6 +134,7 @@
                 if (ae && ae.seq > lastSeenActionSeq) {
                     lastSeenActionSeq = ae.seq;
                     if (ae.name === 'PAYMENT_OK') {
+                        if (isTopup) clearInterval(timeoutTimer); // Stop timeout if payment ok
                         showOverlay('SUCCESS', '#10B981', 'ชำระเงินสำเร็จ กรุณากดปุ่มเพื่อเริ่มงาน');
                         const ov = document.getElementById('qr-overlay');
                         if (!document.getElementById('btn-start-work')) {
@@ -131,6 +159,14 @@
                         setTimeout(hideOverlay, 3000);
                     }
                 }
+
+                // 3. Handle State Redirections (Master Control)
+                if (d.state_event && d.state_event.seq > lastSeenStateSeq) {
+                    lastSeenStateSeq = d.state_event.seq;
+                    if (d.state_event.name === 'Home') {
+                        navTo('/page/home');
+                    }
+                }
             } catch(e){}
         }, 1000);
 
@@ -148,7 +184,10 @@
             document.getElementById('btn-qr-ok').style.opacity = '1';
         }
 
-        document.addEventListener('htmx:beforeSwap', () => clearInterval(poll), {once:true});
+        document.addEventListener('htmx:beforeSwap', () => {
+            clearInterval(poll);
+            if (timeoutTimer) clearInterval(timeoutTimer);
+        }, {once:true});
     })();
 
     function navTo(url, uartMsg) {
