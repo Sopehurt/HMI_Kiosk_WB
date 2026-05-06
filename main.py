@@ -112,7 +112,15 @@ def _save_to_pi(new_config: dict):
             "fn_time": "fnTime",
             "delay_time": "delayTime"
         }
+        # CATPAW MAPPING: These keys should be nested inside catpaw_config
+        catpaw_keys = ["t_total", "ozone_s", "ozone_e", "uv_s", "uv_e", "dust_s", "dust_e", "bact_s", "bact_e", "dry_s", "dry_e", "perfume_s", "perfume_e"]
+        if "catpaw_config" not in data: data["catpaw_config"] = {}
+
         for k, v in new_config.items():
+            if k in catpaw_keys:
+                data["catpaw_config"][k] = v
+                continue
+                
             final_k = mapping.get(k, k)
             data[final_k] = v
             # If it's machine_system, ensure both versions are updated to be safe
