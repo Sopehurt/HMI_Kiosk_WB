@@ -464,18 +464,27 @@
         box.innerHTML = html + '</table>';
     };
 
+    let lastSeenStateSeq = 0;
+    fetch('/api/action_state').then(r=>r.json()).then(d => {
+        if(d.state_event) lastSeenStateSeq = d.state_event.seq;
+    }).catch(()=>{});
+
     const poll = setInterval(async () => { 
         try { 
             const res = await fetch('/api/action_state'); 
             const d = await res.json(); 
+            
             if (document.getElementById('p-testing').style.display !== 'none') {
                 document.getElementById('val-coin').innerText = d.test_coin || 0;
                 document.getElementById('val-bank').innerText = d.test_bank || 0;
             }
             
-            // Force Home if state is Home
-            if (d.state_event && d.state_event.name === 'Home') {
-                htmx.ajax('GET', '/page/home', {target: '#content'});
+            // Force Home ONLY if it is a NEW state event
+            if (d.state_event && d.state_event.seq > lastSeenStateSeq) {
+                lastSeenStateSeq = d.state_event.seq;
+                if (d.state_event.name === 'Home') {
+                    htmx.ajax('GET', '/page/home', {target: '#content'});
+                }
             }
         } catch(e){} 
     }, 1000);
