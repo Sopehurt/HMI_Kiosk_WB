@@ -19,6 +19,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 app.mount("/video", StaticFiles(directory=os.path.join(BASE_DIR, "video")), name="video")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+VIDEO_DIR = os.path.join(BASE_DIR, "video")
 
 # --- Global State ---
 shared_state = {
@@ -71,6 +72,24 @@ def get_active_functions():
     except Exception as e:
         print(f"GET ACTIVE FN ERROR: {e}")
         return []
+
+def handle_video_download(url):
+    try:
+        os.makedirs(VIDEO_DIR, exist_ok=True)
+        filename = os.path.basename(url.split('?')[0])
+        if not filename or len(filename) < 5: 
+            filename = f"video_{int(time.time())}.mp4"
+        dest = os.path.join(VIDEO_DIR, filename)
+        # Use wget to download to the target destination
+        cmd = f"wget -q -O \"{dest}\" \"{url}\""
+        res = subprocess.call(cmd, shell=True)
+        if res == 0:
+            send_queue.put("[Download Video] Success")
+        else:
+            send_queue.put("[Download Video] Error")
+    except Exception as e:
+        print(f"Download Error: {e}")
+        send_queue.put("[Download Video] Error")
 
 def _save_to_pi(new_config: dict):
     try:
@@ -143,6 +162,16 @@ def _parse_line(line: str):
         shared_state["action_history"].append(evt)
         if len(shared_state["action_history"]) > 20: shared_state["action_history"].pop(0)
     
+    elif line.startswith("[Video] Clear"):
+        # Delete all files in video directory
+        if os.path.exists(VIDEO_DIR):
+            for f in os.listdir(VIDEO_DIR):
+                try: os.remove(os.path.join(VIDEO_DIR, f))
+                except: pass
+    elif line.startswith("[Download Video]"):
+        url = line.replace("[Download Video]", "").strip()
+        if url:
+            threading.Thread(target=handle_video_download, args=(url,), daemon=True).start()
     elif line.startswith("[Maint] Submit"):
         shared_state["test_coin"] = 0
         shared_state["test_bank"] = 0
@@ -282,6 +311,14 @@ async def api_action_state():
         "test_coin": shared_state.get("test_coin", 0),
         "test_bank": shared_state.get("test_bank", 0)
     })
+
+@app.get("/api/videos")
+async def list_videos():
+    try:
+        if not os.path.exists(VIDEO_DIR): os.makedirs(VIDEO_DIR, exist_ok=True)
+        files = [f for f in os.listdir(VIDEO_DIR) if f.lower().endswith(('.mp4', '.mov', '.avi', '.mkv'))]
+        return {"videos": files}
+    except: return {"videos": []}
 
 @app.get("/api/uart_send")
 async def api_uart_send(msg: str):

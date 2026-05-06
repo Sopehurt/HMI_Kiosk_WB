@@ -18,6 +18,11 @@
     <div style="position:absolute; top:0; right:0; width:100px; height:100px; z-index:100;" 
          onclick="event.stopPropagation(); adminTap()">
     </div>
+
+    <!-- Idle Video Player (Full Screen Overlay) -->
+    <div id="video-overlay" style="position:absolute; inset:0; background:black; z-index:500; display:none; justify-content:center; align-items:center;">
+        <video id="idle-player" style="width:100%; height:100%; object-fit:contain;" playsinline muted></video>
+    </div>
 </div>
 
 <!-- Admin Numpad Overlay -->
@@ -60,8 +65,78 @@
     let tapCount = 0;
     let tapTimer = null;
     let adminCode = "";
+    
+    // Idle Video Variables
+    let idleTime = 30; // Default
+    let idleCounter = 0;
+    let isPlayingVideo = false;
+    let videoList = [];
+
+    // Fetch settings to get delay_time[6]
+    fetch('/api/settings').then(r=>r.json()).then(d => {
+        if(d.delay_time && d.delay_time[6]) {
+            idleTime = parseInt(d.delay_time[6]);
+        }
+    }).catch(()=>{});
+
+    // Global reset on interaction
+    document.getElementById('home-root').addEventListener('mousedown', () => {
+        resetIdle();
+        if (isPlayingVideo) stopVideo();
+    });
+
+    function resetIdle() {
+        idleCounter = 0;
+    }
+
+    async function startVideo() {
+        if (isPlayingVideo) return;
+        try {
+            const res = await fetch('/api/videos');
+            const data = await res.json();
+            videoList = data.videos || [];
+            if (videoList.length === 0) return;
+            
+            isPlayingVideo = true;
+            const ov = document.getElementById('video-overlay');
+            const player = document.getElementById('idle-player');
+            ov.style.display = 'flex';
+            
+            playRandom();
+            player.onended = () => {
+                // Clear cache before next
+                player.pause();
+                player.src = "";
+                player.load();
+                playRandom();
+            };
+        } catch(e) { isPlayingVideo = false; }
+    }
+
+    function playRandom() {
+        if (!isPlayingVideo) return;
+        const player = document.getElementById('idle-player');
+        const randomVid = videoList[Math.floor(Math.random() * videoList.length)];
+        player.src = "/video/" + randomVid;
+        player.play().catch(()=>{});
+    }
+
+    function stopVideo() {
+        isPlayingVideo = false;
+        const ov = document.getElementById('video-overlay');
+        const player = document.getElementById('idle-player');
+        ov.style.display = 'none';
+        
+        // RAM CLEANUP: Clear source and reload to free memory
+        player.pause();
+        player.removeAttribute('src');
+        player.load();
+        
+        resetIdle();
+    }
 
     window.adminTap = function() {
+        resetIdle(); // Also reset on admin tap
         tapCount++;
         clearTimeout(tapTimer);
         if (tapCount >= 5) {
@@ -73,6 +148,7 @@
     };
 
     window.pressAdmin = function(v) {
+        resetIdle();
         if (v === 'CLR') {
             adminCode = "";
         } else {
@@ -100,10 +176,7 @@
     };
 
     window.closeAdmin = function(isOk) {
-        if (isOk) {
-            // Optional: You could trigger the code check here if needed
-            // For now, we'll just close it as per current logic
-        }
+        resetIdle();
         adminCode = "";
         document.getElementById('admin-display').innerText = "";
         document.getElementById('admin-numpad').style.display = 'none';
@@ -111,6 +184,7 @@
 
     const poll = setInterval(async () => {
         try {
+            // 1. MQTT Status
             const res = await fetch('/api/action_state');
             const d = await res.json();
             
@@ -129,10 +203,19 @@
                     txt.innerText = 'Offline';
                 }
             }
+
+            // 2. Idle Timer Logic
+            if (!isPlayingVideo && document.getElementById('admin-numpad').style.display === 'none') {
+                idleCounter += 2; // Since poll is every 2s
+                if (idleCounter >= idleTime) {
+                    startVideo();
+                }
+            }
         } catch(e) {}
     }, 2000);
 
     document.addEventListener('htmx:beforeSwap', function cleanup() {
+        if (isPlayingVideo) stopVideo();
         clearInterval(poll);
         document.removeEventListener('htmx:beforeSwap', cleanup);
     });
