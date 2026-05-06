@@ -100,12 +100,31 @@
 
         window.topUp = () => navTo('/page/qr?mode=topup', '[Action] Pause');
 
-        // Poll for zero balance
+        let hasStarted = false;
+        let lastSeenStateSeq = 0;
+        
+        // Initialize state sequence to ignore old [State] events
+        fetch('/api/action_state').then(r=>r.json()).then(d => {
+            if(d.state_event) lastSeenStateSeq = d.state_event.seq;
+        }).catch(()=>{});
+
+        // Poll for zero balance and State redirections
         const poll = setInterval(async () => {
             try {
                 const res = await fetch('/api/action_state');
                 const d = await res.json();
-                if (d.balance <= 0) finishOp();
+                
+                // 1. Session Finish Logic: Only finish if we once had money and now it's 0
+                if (d.balance > 0) hasStarted = true;
+                if (hasStarted && d.balance <= 0) finishOp();
+                
+                // 2. State Redirection Logic: Force Home ONLY if it is a NEW state event
+                if (d.state_event && d.state_event.seq > lastSeenStateSeq) {
+                    lastSeenStateSeq = d.state_event.seq;
+                    if (d.state_event.name === 'Home') {
+                        navTo('/page/home');
+                    }
+                }
             } catch(e){}
         }, 1000);
 

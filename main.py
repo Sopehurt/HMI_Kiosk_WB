@@ -25,6 +25,7 @@ shared_state = {
     "balance": 0,
     "test_coin": 0,
     "test_bank": 0,
+    "last_qr_event": None,
     "last_action_event": None,
     "action_history": [], # Buffer for multiple fast events
     "last_state_event": None,
@@ -146,6 +147,21 @@ def _parse_line(line: str):
         shared_state["test_coin"] = 0
         shared_state["test_bank"] = 0
 
+    line = line.strip()
+    if line.startswith("QR_PAYLOAD:"):
+        shared_state["last_qr_event"] = {"name": "QR_PAYLOAD", "val": line.replace("QR_PAYLOAD:", "").strip(), "seq": time.time()}
+    elif line.startswith("QR_URL:"):
+        shared_state["last_qr_event"] = {"name": "QR_URL", "val": line.replace("QR_URL:", "").strip(), "seq": time.time()}
+    elif line.startswith("WAITING_QR:"):
+        shared_state["last_qr_event"] = {"name": "WAITING_QR", "val": line.replace("WAITING_QR:", "").strip(), "seq": time.time()}
+    elif line.startswith("PAYMENT_OK:"):
+        shared_state["last_action_event"] = {"name": "PAYMENT_OK", "val": line.replace("PAYMENT_OK:", "").strip(), "seq": time.time()}
+    elif line.startswith("PAYMENT_ERROR:"):
+        shared_state["last_action_event"] = {"name": "PAYMENT_ERROR", "val": line.replace("PAYMENT_ERROR:", "").strip(), "seq": time.time()}
+    elif line.startswith("PAYMENT_TIMEOUT"):
+        shared_state["last_action_event"] = {"name": "PAYMENT_TIMEOUT", "val": "Timeout", "seq": time.time()}
+    elif line.startswith("[Action]"):
+        shared_state["last_action_event"] = {"name": "Action", "val": line.replace("[Action]", "").strip(), "seq": time.time()}
     elif line.startswith("[Config]"):
         try:
             val_str = line.split("[Config]")[1].strip()
@@ -256,7 +272,8 @@ async def post_settings(request: Request):
 @app.get("/api/action_state")
 async def api_action_state():
     return JSONResponse(content={
-        "action_history": shared_state.get("action_history", []),
+        "action_event": shared_state.get("last_action_event"),
+        "qr_event": shared_state.get("last_qr_event"),
         "state_event": shared_state.get("last_state_event"),
         "schedule_event": shared_state.get("last_schedule_event"),
         "mqtt_online": shared_state.get("mqtt_online", False),

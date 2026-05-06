@@ -54,14 +54,16 @@
     (function() {
         let amount = 10;
         let isWaiting = false;
-        let lastSeenEventSeq = 0;
+        let lastSeenActionSeq = 0;
+        let lastSeenQrSeq = 0;
 
         // Auto send [QR] wait on load
         fetch('/api/uart_send?msg=' + encodeURIComponent('[QR] wait'));
 
-        // Initialize sequence on load to ignore past events
+        // Initialize sequences on load to ignore past events
         fetch('/api/action_state').then(r=>r.json()).then(d => {
-            if(d.action_event) lastSeenEventSeq = d.action_event.seq;
+            if(d.action_event) lastSeenActionSeq = d.action_event.seq;
+            if(d.qr_event) lastSeenQrSeq = d.qr_event.seq;
         }).catch(()=>{});
 
         window.adj = (v) => {
@@ -84,34 +86,50 @@
             try {
                 const res = await fetch('/api/action_state');
                 const d = await res.json();
-                const state = d.action_event;
-
-                // CRITICAL: Only process if it's a NEW sequence
-                if (!state || state.seq <= lastSeenEventSeq) return;
-                lastSeenEventSeq = state.seq;
-
-                if (state.name === 'QR_URL' || state.name === 'QR_PAYLOAD') {
-                    const img = document.getElementById('qr-img');
-                    const ph = document.getElementById('qr-placeholder');
-                    ph.style.display = 'none';
-                    img.style.display = 'block';
-                    img.src = (state.name === 'QR_URL') ? state.val : 'https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=' + encodeURIComponent(state.val);
+                
+                // 1. Handle QR Events (from qr_event lane)
+                const qe = d.qr_event;
+                if (qe && qe.seq > lastSeenQrSeq) {
+                    lastSeenQrSeq = qe.seq;
+                    if (qe.name === 'QR_PAYLOAD' || qe.name === 'QR_URL') {
+                        const img = document.getElementById('qr-img');
+                        const ph = document.getElementById('qr-placeholder');
+                        ph.style.display = 'none';
+                        img.style.display = 'block';
+                        img.src = (qe.name === 'QR_URL') ? qe.val : 'https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=' + encodeURIComponent(qe.val);
+                    } else if (qe.name === 'WAITING_QR') {
+                        document.getElementById('qr-placeholder').innerHTML = '<p style="font-weight:bold;">กำลังรอ QR จาก Server...</p>';
+                    }
                 }
 
-                if (state.name === 'PAYMENT_OK') {
-                    showOverlay('SUCCESS', '#10B981', 'ชำระเงินสำเร็จ กำลังเริ่มงาน...');
-                    clearInterval(poll);
-                    setTimeout(async () => {
-                        const confRes = await fetch('/api/settings');
-                        const conf = await confRes.json();
-                        navTo('/page/operation_' + (conf.machine_system || 'CATCARWASH'));
-                    }, 2000);
-                } else if (state.name === 'PAYMENT_ERROR') {
-                    showOverlay('FAILED', '#EF4444', state.val || 'ชำระเงินผิดพลาด');
-                    setTimeout(hideOverlay, 3000);
-                } else if (state.name === 'PAYMENT_TIMEOUT') {
-                    showOverlay('TIMEOUT', '#F59E0B', 'QR หมดอายุ กรุณาลองใหม่');
-                    setTimeout(hideOverlay, 3000);
+                // 2. Handle Payment Status (from action_event lane)
+                const ae = d.action_event;
+                if (ae && ae.seq > lastSeenActionSeq) {
+                    lastSeenActionSeq = ae.seq;
+                    if (ae.name === 'PAYMENT_OK') {
+                        showOverlay('SUCCESS', '#10B981', 'ชำระเงินสำเร็จ กรุณากดปุ่มเพื่อเริ่มงาน');
+                        const ov = document.getElementById('qr-overlay');
+                        if (!document.getElementById('btn-start-work')) {
+                            const startBtn = document.createElement('button');
+                            startBtn.id = 'btn-start-work';
+                            startBtn.innerText = 'START';
+                            startBtn.style = 'margin-top:20px; width:250px; height:80px; background:#10B981; color:white; font-size:2rem; font-weight:bold; border-radius:16px; border:none; cursor:pointer; box-shadow:0 10px 20px rgba(16,185,129,0.3);';
+                            startBtn.onclick = async () => {
+                                fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Start'));
+                                const confRes = await fetch('/api/settings');
+                                const conf = await confRes.json();
+                                navTo('/page/operation_' + (conf.machine_system || 'CATCARWASH'), '[State] operation');
+                            };
+                            ov.appendChild(startBtn);
+                        }
+                        clearInterval(poll);
+                    } else if (ae.name === 'PAYMENT_ERROR') {
+                        showOverlay('FAILED', '#EF4444', ae.val || 'ชำระเงินผิดพลาด');
+                        setTimeout(hideOverlay, 3000);
+                    } else if (ae.name === 'PAYMENT_TIMEOUT') {
+                        showOverlay('TIMEOUT', '#F59E0B', 'QR หมดอายุ กรุณาลองใหม่');
+                        setTimeout(hideOverlay, 3000);
+                    }
                 }
             } catch(e){}
         }, 1000);

@@ -124,12 +124,22 @@
                     }
                 });
 
-                // 3. Overall State
-                if (d.state_event && d.state_event.name === 'Finish') {
-                    document.getElementById('finish-overlay').style.display = 'flex';
+                // 3. Overall State & Redirection Logic
+                if (d.state_event && d.state_event.seq > lastSeenStateSeq) {
+                    lastSeenStateSeq = d.state_event.seq;
+                    if (d.state_event.name === 'Finish') {
+                        document.getElementById('finish-overlay').style.display = 'flex';
+                    } else if (d.state_event.name === 'Home') {
+                        navTo('/page/home');
+                    }
                 }
             } catch(e){}
         }
+
+        let lastSeenStateSeq = 0;
+        fetch('/api/action_state').then(r=>r.json()).then(d => {
+            if(d.state_event) lastSeenStateSeq = d.state_event.seq;
+        }).catch(()=>{});
 
         function handleActionEvent(name) {
             const lowerName = name.toLowerCase();
