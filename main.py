@@ -23,7 +23,10 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 # --- Global State ---
 shared_state = {
     "balance": 0,
+    "test_coin": 0,
+    "test_bank": 0,
     "last_action_event": None,
+    "action_history": [], # Buffer for multiple fast events
     "last_state_event": None,
     "last_schedule_event": None,
     "countdown": 0,
@@ -46,13 +49,27 @@ def get_active_functions():
         with open(os.path.join(BASE_DIR, "Global_data.json"), "r") as f:
             data = json.load(f)
         names = data.get("fnNames") or data.get("fn_names") or [""]*8
+        en = data.get("fnEnable") or data.get("fn_enable") or [True]*8
+        order = data.get("fnOrder") or data.get("fn_order") or list(range(8))
+        
         en_names = ["dust", "bact", "uv", "ozone", "dry", "perfume", "fn7", "fn8"]
         active = []
-        for i in range(8):
-            if names[i] and names[i].lower() != "nan":
-                active.append({"index": i, "name": names[i], "en_name": en_names[i]})
+        
+        # We follow the order specified in fnOrder
+        for pos in range(len(order)):
+            idx = order[pos]
+            if idx < len(names) and en[idx]:
+                # Priority: 1. Name from config, 2. Fallback to Function N
+                display_name = names[idx] if (names[idx] and names[idx].lower() != "nan") else f"Function {idx+1}"
+                active.append({
+                    "index": idx,
+                    "name": display_name,
+                    "en_name": f"fn{idx}"
+                })
         return active
-    except: return []
+    except Exception as e:
+        print(f"GET ACTIVE FN ERROR: {e}")
+        return []
 
 def _save_to_pi(new_config: dict):
     try:
@@ -68,7 +85,12 @@ def _save_to_pi(new_config: dict):
             "start_timeout": "startTimeout",
             "machine_active": "machineActive",
             "money_mem_active": "moneyMemActive",
-            "pro_mo": "proMo"
+            "pro_mo": "proMo",
+            "fn_enable": "fnEnable",
+            "fn_order": "fnOrder",
+            "fn_names": "fnNames",
+            "fn_time": "fnTime",
+            "delay_time": "delayTime"
         }
         for k, v in new_config.items():
             final_k = mapping.get(k, k)
@@ -77,6 +99,10 @@ def _save_to_pi(new_config: dict):
             if final_k in ["machine_system", "machineSystem"]:
                 data["machine_system"] = v
                 data["machineSystem"] = v
+            # If it's fnEnable, also ensure fn_enable is sync'd and vice versa
+            if final_k in ["fnEnable", "fn_enable"]:
+                data["fnEnable"] = v
+                data["fn_enable"] = v
 
         with open(path, "w") as f:
             json.dump(data, f, indent=2)
@@ -101,11 +127,25 @@ def _parse_line(line: str):
         shared_state["last_state_event"] = {"name": line.replace("[State]", "").strip(), "seq": time.time()}
     elif "[MQTT]" in line:
         shared_state["mqtt_online"] = ("online" in line.lower())
+    elif "[Coin]" in line:
+        try: shared_state["test_coin"] = int(line.split("[Coin]")[1].strip())
+        except: pass
+    elif "[Bank]" in line:
+        try: shared_state["test_bank"] = int(line.split("[Bank]")[1].strip())
+        except: pass
     
     # 3. Actions & Config
     elif line.startswith("[Action]"):
         txt = line.replace("[Action]", "").strip()
-        shared_state["last_action_event"] = {"name": txt, "val": "", "seq": time.time()}
+        evt = {"name": txt, "val": "", "seq": time.time()}
+        shared_state["last_action_event"] = evt
+        shared_state["action_history"].append(evt)
+        if len(shared_state["action_history"]) > 20: shared_state["action_history"].pop(0)
+    
+    elif line.startswith("[Maint] Submit"):
+        shared_state["test_coin"] = 0
+        shared_state["test_bank"] = 0
+
     elif line.startswith("[Config]"):
         try:
             val_str = line.split("[Config]")[1].strip()
@@ -216,12 +256,14 @@ async def post_settings(request: Request):
 @app.get("/api/action_state")
 async def api_action_state():
     return JSONResponse(content={
-        "action_event": shared_state.get("last_action_event"),
+        "action_history": shared_state.get("action_history", []),
         "state_event": shared_state.get("last_state_event"),
         "schedule_event": shared_state.get("last_schedule_event"),
         "mqtt_online": shared_state.get("mqtt_online", False),
         "countdown": shared_state.get("countdown", "--"),
-        "balance": shared_state.get("balance", 0)
+        "balance": shared_state.get("balance", 0),
+        "test_coin": shared_state.get("test_coin", 0),
+        "test_bank": shared_state.get("test_bank", 0)
     })
 
 @app.get("/api/uart_send")

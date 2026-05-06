@@ -18,7 +18,7 @@
         <!-- Right Column: Status & Timer -->
         <div style="flex:1; display:flex; flex-direction:column; gap:24px;">
             <!-- Big Box -->
-            <div style="flex:1; background:#1E2836; border-radius:32px; border:1px solid #374151; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow:inset 0 4px 15px rgba(0,0,0,0.3);">
+            <div style="flex:1; background:#1E2836; border-radius:32px; border:1px solid #374151; display:flex; flex-direction:column; justify-content:center; align-items:center;">
                 <span id="status-text" style="color:#9CA3AF; font-size:2rem; font-weight:bold; margin-bottom:15px; letter-spacing:2px; text-transform:uppercase;">Running</span>
                 <div style="display:flex; align-items:baseline;">
                     <span id="main-timer" style="font-size:10rem; font-weight:bold; color:white; line-height:1; font-family:monospace;">--</span>
@@ -42,7 +42,7 @@
         </div>
     </div>
 
-    <!-- Finish overlay (minimalist) -->
+    <!-- Finish overlay -->
     <div id="finish-overlay" style="display:none; position:absolute; inset:0; background:#111827; z-index:300; justify-content:center; align-items:center; flex-direction:column; gap:40px;">
         <h2 style="color:#10B981; font-size:6rem; font-weight:bold; letter-spacing:10px; margin:0;">COMPLETED</h2>
         <button style="background:#3B82F6; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:20px 80px; cursor:pointer;" onclick="navTo('/page/home')">Return to Home</button>
@@ -54,27 +54,28 @@
     .fn-circle {
         width: 50px; height: 50px; border-radius: 50%;
         background: #374151; border: 4px solid #1F2937;
-        flex-shrink: 0; transition: 0.3s;
+        flex-shrink: 0;
     }
     .fn-text { color: white; font-size: 2.2rem; font-weight: bold; }
-    
-    .circle-running { background: #FBBF24 !important; border-color: #FDE047 !important; box-shadow: 0 0 15px rgba(251,191,36,0.5); }
+    .circle-running { background: #FBBF24 !important; border-color: #FDE047 !important; }
     .circle-finished { background: #10B981 !important; border-color: #34D399 !important; }
+    * { transition: none !important; animation: none !important; }
 </style>
 
 <script>
     (function() {
         const fns = [
-            {id:'uv_ozone', thai:'อบด้วยยูวีและโอโซน', match:['uv','ozone']},
-            {id:'dust', thai:'เป่าฝุ่นด้วยแรงดันลม', match:['dust']},
-            {id:'bact', thai:'ฆ่าเชื้อแบคทีเรีย', match:['bact']},
-            {id:'dry', thai:'อบแห้งด้วยลมร้อน', match:['dry']},
-            {id:'perfume', thai:'อบหมวกด้วยน้ำหอม', match:['perfume']}
+            {id:'uv_ozone', thai:'อบด้วยยูวีและโอโซน', match:'uv'},
+            {id:'dust', thai:'เป่าฝุ่นด้วยแรงดันลม', match:'dust'},
+            {id:'bact', thai:'ฆ่าเชื้อแบคทีเรีย', match:'bact'},
+            {id:'dry', thai:'อบแห้งด้วยลมร้อน', match:'dry'},
+            {id:'perfume', thai:'อบหมวกด้วยน้ำหอม', match:'perfume'}
         ];
 
+        let timeLeft = 0;
         let isPaused = false;
+        let timerStarted = false;
         let lastActionSeq = 0;
-        let lastStateSeq = 0;
         let lastSchedSeq = 0;
 
         // Render functions
@@ -86,79 +87,105 @@
             container.appendChild(div);
         });
 
+        // Local Timer Logic
+        setInterval(() => {
+            if (timerStarted && !isPaused && timeLeft > 0) {
+                timeLeft--;
+                document.getElementById('main-timer').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    timerStarted = false;
+                    document.getElementById('status-text').innerText = 'COMPLETED';
+                }
+            }
+        }, 1000);
+
         async function poll() {
             try {
                 const res = await fetch('/api/action_state?t=' + Date.now());
                 const d = await res.json();
                 
-                // 1. Countdown from ESP
-                if (d.countdown !== undefined && d.countdown !== null && d.countdown !== '--') {
-                    document.getElementById('main-timer').innerText = d.countdown;
-                }
-
-                // 2. Schedule ACK
+                // 1. Schedule
                 if (d.schedule_event && d.schedule_event.seq > lastSchedSeq) {
                     lastSchedSeq = d.schedule_event.seq;
-                    fetch('/api/uart_send?msg=[Action] Load Schedule Success');
-                }
-
-                // 3. Actions (FnOn, FnOff, Door)
-                if (d.action_event && d.action_event.seq > lastActionSeq) {
-                    lastActionSeq = d.action_event.seq;
-                    handleActionEvent(d.action_event.name);
-                }
-
-                // 4. States (Finish)
-                if (d.state_event && d.state_event.seq > lastStateSeq) {
-                    lastStateSeq = d.state_event.seq;
-                    if (d.state_event.name === 'Finish') {
-                        document.getElementById('finish-overlay').style.display = 'flex';
+                    const totalMatch = d.schedule_event.raw.match(/total:(\d+)/);
+                    if (totalMatch) {
+                        timeLeft = parseInt(totalMatch[1]);
+                        document.getElementById('main-timer').innerText = timeLeft;
+                        fetch('/api/uart_send?msg=[Action] Load Schedule Success');
                     }
+                }
+
+                // 2. Actions (Process History)
+                const history = d.action_history || [];
+                history.forEach(evt => {
+                    if (evt.seq > lastActionSeq) {
+                        lastActionSeq = evt.seq;
+                        handleActionEvent(evt.name);
+                    }
+                });
+
+                // 3. Overall State
+                if (d.state_event && d.state_event.name === 'Finish') {
+                    document.getElementById('finish-overlay').style.display = 'flex';
                 }
             } catch(e){}
         }
 
         function handleActionEvent(name) {
-            console.log("Action Event:", name);
+            const lowerName = name.toLowerCase();
+            console.log("CATPAW Action Received:", name);
+            
             if (name.includes('FnOn')) {
-                const fnName = name.split('|')[1]?.toLowerCase() || "";
-                setCircleState(fnName, 'circle-running');
+                timerStarted = true;
+                setCircleState(name, 'circle-running');
             } else if (name.includes('FnOff')) {
-                const fnName = name.split('|')[1]?.toLowerCase() || "";
-                setCircleState(fnName, 'circle-finished');
-            } else if (name.includes('Door open')) {
-                document.getElementById('door-status').style.visibility = 'visible';
-            } else if (name.includes('Door close')) {
-                document.getElementById('door-status').style.visibility = 'hidden';
+                setCircleState(name, 'circle-finished');
+            }
+            
+            if (lowerName.includes('pause') || lowerName.includes('door open')) {
+                updatePauseUI(true, lowerName.includes('door open'));
+            } else if (lowerName.includes('resume') || lowerName.includes('door close')) {
+                updatePauseUI(false, false);
             }
         }
 
-        function setCircleState(fnKey, className) {
+        function updatePauseUI(paused, door) {
+            isPaused = paused;
+            const btn = document.getElementById('btn-pause');
+            const st = document.getElementById('status-text');
+            const dr = document.getElementById('door-status');
+            
+            if (isPaused) {
+                btn.innerText = 'RESUME';
+                btn.style.background = '#10B981';
+                st.innerText = 'PAUSED';
+                dr.style.visibility = door ? 'visible' : 'hidden';
+            } else {
+                btn.innerText = 'PAUSE';
+                btn.style.background = '#F59E0B';
+                st.innerText = 'RUNNING';
+                dr.style.visibility = 'hidden';
+            }
+        }
+
+        function setCircleState(rawAction, className) {
+            const lowerAction = rawAction.toLowerCase();
             fns.forEach(f => {
-                if (f.match.some(m => fnKey.includes(m))) {
+                // Precise match for "fn":"name" in JSON string
+                const pattern = `\"fn\":\"${f.match}\"`;
+                if (lowerAction.includes(pattern)) {
                     const circle = document.getElementById('circle-' + f.id);
-                    if (className === 'circle-running') {
-                        circle.classList.remove('circle-finished');
-                        circle.classList.add('circle-running');
-                    } else {
-                        circle.classList.remove('circle-running');
-                        circle.classList.add('circle-finished');
-                    }
+                    circle.classList.remove('circle-running', 'circle-finished');
+                    circle.classList.add(className);
                 }
             });
         }
 
         window.cpTogglePause = (btn) => {
-            isPaused = !isPaused;
-            if (isPaused) {
-                btn.innerText = 'RESUME'; btn.style.background = '#10B981';
-                document.getElementById('status-text').innerText = 'Stopping';
-                fetch('/api/uart_send?msg=[Action] Pause');
-            } else {
-                btn.innerText = 'PAUSE'; btn.style.background = '#F59E0B';
-                document.getElementById('status-text').innerText = 'Running';
-                fetch('/api/uart_send?msg=[Action] Resume');
-            }
+            // Immediate UI feedback for better UX
+            const nextPaused = !isPaused;
+            updatePauseUI(nextPaused, false);
+            fetch('/api/uart_send?msg=[Action] ' + (nextPaused ? 'Pause' : 'Resume'));
         };
 
         window.cpForceFinish = () => {
@@ -171,8 +198,7 @@
         document.addEventListener('htmx:beforeSwap', () => clearInterval(interval), {once:true});
     })();
 
-    function navTo(url, uartMsg) {
-        if(uartMsg) fetch('/api/uart_send?msg=' + encodeURIComponent(uartMsg));
+    function navTo(url) {
         htmx.ajax('GET', url, {target: '#content'});
     }
 </script>

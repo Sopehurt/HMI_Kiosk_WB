@@ -1,51 +1,51 @@
-<div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column; font-family: sans-serif;">
-    <!-- Header -->
+<div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column; font-family: sans-serif; overflow:hidden;">
+    <!-- Header: Solid colors, no shadows -->
     <div style="height:72px; background:#E79124; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 32px;">
-        <span style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">CATCARWASH Operation</span>
+        <span style="font-size:1.8rem; font-weight:bold; color:white;">CATCARWASH Operation</span>
         <div style="display:flex; gap:15px; align-items:center;">
-            <div style="color:white; font-size:1.3rem; font-weight:bold; background:rgba(0,0,0,0.2); padding:8px 16px; border-radius:8px;">
+            <div style="color:white; font-size:1.3rem; font-weight:bold; background:#111827; padding:8px 16px; border-radius:8px; border:1px solid #374151;">
                 ยอดเงินคงเหลือ: <span class="global-balance-display">0</span> THB
             </div>
-            <button onclick="topUp()" style="background:#3B82F6; color:white; border:none; border-radius:12px; padding:8px 24px; font-weight:bold; font-size:1.1rem; cursor:pointer;">TOP UP</button>
-            <button onclick="navTo('/page/home', '[State] Home')" style="background:rgba(0,0,0,0.2); color:white; border:none; border-radius:12px; padding:8px 24px; font-weight:bold; font-size:1.1rem; cursor:pointer;">Back</button>
+            <button onclick="topUp()" style="background:#3B82F6; color:white; border:none; border-radius:8px; padding:10px 24px; font-weight:bold; font-size:1.1rem; cursor:pointer;">TOP UP</button>
         </div>
     </div>
 
-    <!-- Status Bar -->
+    <!-- Status: Minimalist -->
     <div style="padding:20px 32px 0 32px;">
-        <div style="background:#1E2836; border:2px solid #374151; border-radius:16px; padding:15px; text-align:center;">
-            <p style="color:#9CA3AF; font-size:1rem; font-weight:bold; letter-spacing:3px; margin-bottom:5px;">STATUS</p>
-            <h2 id="status-display" style="color:#F59E0B; font-size:2.5rem; margin:0; letter-spacing:2px; text-transform:uppercase;">PLEASE SELECT A MODE</h2>
+        <div style="background:#1E2836; border:1px solid #374151; border-radius:12px; padding:12px; text-align:center;">
+            <p style="color:#9CA3AF; font-size:0.9rem; font-weight:bold; margin-bottom:4px;">STATUS</p>
+            <h2 id="status-display" style="color:#F59E0B; font-size:2.2rem; margin:0; text-transform:uppercase;">PLEASE SELECT A MODE</h2>
         </div>
     </div>
 
-    <!-- Buttons Grid -->
-    <div style="flex:1; padding:20px 32px; display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(2, 1fr); gap:15px;">
+    <!-- Buttons Grid: Strictly based on active_functions (ordered & enabled) -->
+    <div id="btn-grid" style="flex:1; padding:20px 32px; display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(2, 1fr); gap:12px;">
         {% for fn in active_functions %}
         <button class="op-btn" id="btn-{{ fn.en_name }}" onclick="toggleFn({{ fn.index }}, '{{ fn.name }}', '{{ fn.en_name }}')" style="
-            background:#1F2937; border:3px solid #374151; border-radius:16px;
+            background:#1F2937; border:2px solid #374151; border-radius:12px;
             color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;
         ">{{ fn.name }}</button>
         {% endfor %}
     </div>
 
-    <!-- Finish Button Area -->
-    <div style="height:100px; display:flex; justify-content:center; align-items:center; padding-bottom:15px;">
-        <button onclick="finishOp()" style="width:300px; height:70px; background:#EF4444; color:white; border:none; border-radius:16px; font-size:2rem; font-weight:bold; cursor:pointer; box-shadow:0 6px 15px rgba(0,0,0,0.3);">FINISH</button>
+    <!-- Finish: Clean & Fast -->
+    <div style="height:90px; display:flex; justify-content:center; align-items:center; padding-bottom:10px;">
+        <button onclick="finishOp()" style="width:280px; height:60px; background:#EF4444; color:white; border:none; border-radius:12px; font-size:1.8rem; font-weight:bold; cursor:pointer;">FINISH</button>
     </div>
 </div>
 
 <style>
+    /* Extreme Optimization: No transitions, no shadows */
     .op-btn.active {
         background:#3B82F6 !important;
-        border-color:#93C5FD !important;
+        border-color:#60A5FA !important;
         color:white !important;
-        box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
     }
     .op-btn.disabled {
-        opacity: 0.3;
+        opacity: 0.2;
         pointer-events: none;
     }
+    * { transition: none !important; animation: none !important; }
 </style>
 
 <script>
@@ -59,19 +59,21 @@
                 deactivateUI();
             } else {
                 if (activeIdx !== null) fetch('/api/uart_send?msg=[Action] Off fn(' + activeIdx + ')');
+                // Tiny delay to ensure previous off is sent
                 setTimeout(() => {
                     fetch('/api/uart_send?msg=[Action] On fn(' + idx + ')');
-                }, 50);
+                }, 30);
                 activateUI(idx, thName, enName);
             }
         };
 
         function activateUI(idx, thName, enName) {
             activeIdx = idx;
-            document.querySelectorAll('.op-btn').forEach(b => {
+            const btns = document.querySelectorAll('.op-btn');
+            for(let b of btns) {
                 b.classList.toggle('active', b.id === 'btn-' + enName);
                 b.classList.toggle('disabled', b.id !== 'btn-' + enName);
-            });
+            }
             const st = document.getElementById('status-display');
             st.innerText = thName + ' ACTIVE';
             st.style.color = '#3B82F6';
@@ -79,9 +81,10 @@
 
         function deactivateUI() {
             activeIdx = null;
-            document.querySelectorAll('.op-btn').forEach(b => {
+            const btns = document.querySelectorAll('.op-btn');
+            for(let b of btns) {
                 b.classList.remove('active', 'disabled');
-            });
+            }
             const st = document.getElementById('status-display');
             st.innerText = 'PLEASE SELECT A MODE';
             st.style.color = '#F59E0B';
@@ -89,13 +92,15 @@
 
         window.finishOp = () => {
             fetch('/api/uart_send?msg=[State] Finish');
-            setTimeout(() => fetch('/api/uart_send?msg=[Action] Finish'), 50);
-            navTo('/page/home');
+            setTimeout(() => {
+                fetch('/api/uart_send?msg=[Action] Finish');
+                navTo('/page/home');
+            }, 50);
         };
 
         window.topUp = () => navTo('/page/qr?mode=topup', '[Action] Pause');
 
-        // Simple poll for zero balance
+        // Poll for zero balance
         const poll = setInterval(async () => {
             try {
                 const res = await fetch('/api/action_state');

@@ -67,10 +67,10 @@
 
         <div class="m-main">
             <div id="p-testing" class="page">
-                <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">Testing <button class="f-btn f-btn-sm f-btn-success" onclick="sendUart('Testing Submit')">SUBMIT</button></div>
+                <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">Testing <button class="f-btn f-btn-sm f-btn-success" onclick="maintSubmit()">SUBMIT</button></div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
-                    <div class="f-card"><div style="color:var(--text-muted); font-size:16px; font-weight:700;">COIN</div><div id="val-coin" style="font-size:64px; font-weight:900;">0</div></div>
-                    <div class="f-card"><div style="color:var(--text-muted); font-size:16px; font-weight:700;">BANK</div><div id="val-bank" style="font-size:64px; font-weight:900;">0</div></div>
+                    <div class="f-card" onclick="sendUart('[Mode] TestCoin')" style="cursor:pointer;"><div style="color:var(--text-muted); font-size:16px; font-weight:700;">COIN (Press to Test)</div><div id="val-coin" style="font-size:64px; font-weight:900;">0</div></div>
+                    <div class="f-card" onclick="sendUart('[Mode] TestBank')" style="cursor:pointer;"><div style="color:var(--text-muted); font-size:16px; font-weight:700;">BANK (Press to Test)</div><div id="val-bank" style="font-size:64px; font-weight:900;">0</div></div>
                 </div>
             </div>
 
@@ -234,12 +234,12 @@
             btn.style.background = '#374151'; activeCH = null;
             document.querySelectorAll('#ch-grid button').forEach(b => { b.style.opacity='1'; b.style.cursor='pointer'; });
             document.getElementById('ch-status').innerText = 'All Channels Ready';
-            sendUart(`CH${ch} OFF`);
+            sendUart(`[Merchant] fn${ch} Off`);
         } else {
             activeCH = ch; btn.style.background = 'var(--secondary)';
             document.querySelectorAll('#ch-grid button').forEach(b => { if(b.id !== 'btn-ch'+ch){ b.style.opacity='0.3'; b.style.cursor='not-allowed'; } });
             document.getElementById('ch-status').innerText = `CH${ch} is ACTIVE`;
-            sendUart(`CH${ch} ON`);
+            sendUart(`[Merchant] fn${ch} On`);
         }
     };
 
@@ -264,11 +264,16 @@
         const res = await fetch('/api/settings', {method:'POST', body:JSON.stringify({startPrices:p})});
         const d = await res.json();
         if(d.ok) { 
-            sendUart(`[Config] {"startPrices":${p}}`);
+            sendUart(`[Config] Preference|{"startPrices":${p}}`);
             alert("Price Saved!"); 
         }
     };
     window.sendUart = (m) => fetch(`/api/uart_send?msg=${encodeURIComponent(m)}`);
+    window.maintSubmit = () => {
+        sendUart('[Maint] Submit');
+        document.getElementById('val-coin').innerText = '0';
+        document.getElementById('val-bank').innerText = '0';
+    };
 
     window.openNp = (el, t) => { 
         npTarget=el; 
@@ -339,6 +344,14 @@
         const ssid = document.getElementById('w-ssid').value;
         const pw = document.getElementById('w-pass').value;
         if(!ssid) return alert("Select SSID");
+        
+        // 1. Update Preference first
+        await fetch('/api/settings', {method:'POST', body:JSON.stringify({ssid:ssid, wfpwd:pw})});
+        
+        // 2. Send to ESP32 with the new format
+        sendUart(`[Config] Preference|{"ssid":"${ssid}", "wfpwd":"${pw}"}`);
+        
+        // 3. Trigger actual connection
         const res = await fetch('/api/wifi/connect', {method:'POST', body:JSON.stringify({ssid:ssid, password:pw})});
         const d = await res.json();
         if(d.ok) { alert("Connect Command Sent"); updateWifiStatus(); }
@@ -414,7 +427,7 @@
         const res = await fetch('/api/settings', {method:'POST', body:JSON.stringify(payload)});
         const d = await res.json();
         if(d.ok) { 
-            sendUart(`[Config] ${JSON.stringify(payload)}`);
+            sendUart(`[Config] Preference|${JSON.stringify(payload)}`);
             alert("Config Saved!"); 
         }
     };
@@ -435,7 +448,16 @@
         box.innerHTML = html + '</table>';
     };
 
-    const poll = setInterval(async () => { try { const res=await fetch('/api/action_state'); const d=await res.json(); document.getElementById('val-coin').innerText=d.balance||0; } catch(e){} }, 1000);
+    const poll = setInterval(async () => { 
+        try { 
+            const res = await fetch('/api/action_state'); 
+            const d = await res.json(); 
+            if (document.getElementById('p-testing').style.display !== 'none') {
+                document.getElementById('val-coin').innerText = d.test_coin || 0;
+                document.getElementById('val-bank').innerText = d.test_bank || 0;
+            }
+        } catch(e){} 
+    }, 1000);
     async function init() {
         try { 
             const res=await fetch('/api/settings'); 
