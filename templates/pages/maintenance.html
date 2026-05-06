@@ -49,7 +49,7 @@
     input[type="checkbox"].f-check { width: 40px; height: 40px; cursor: pointer; accent-color: var(--primary); }
 </style>
 
-<div class="m-root">
+<div class="m-root" onclick="sendUart('[Action] Touch')">
     <div class="m-header">
         <div class="m-title">MAINTENANCE</div>
         <button class="btn-exit" onclick="htmx.ajax('GET', '/page/home', {target: '#content'})">EXIT</button>
@@ -455,6 +455,11 @@
             if (document.getElementById('p-testing').style.display !== 'none') {
                 document.getElementById('val-coin').innerText = d.test_coin || 0;
                 document.getElementById('val-bank').innerText = d.test_bank || 0;
+            }
+            
+            // Force Home if state is Home
+            if (d.state_event && d.state_event.name === 'Home') {
+                htmx.ajax('GET', '/page/home', {target: '#content'});
             }
         } catch(e){} 
     }, 1000);
