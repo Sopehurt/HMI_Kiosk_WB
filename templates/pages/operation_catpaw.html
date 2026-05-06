@@ -88,7 +88,7 @@
         });
 
         // Local Timer Logic
-        setInterval(() => {
+        const localTimer = setInterval(() => {
             if (timerStarted && !isPaused && timeLeft > 0) {
                 timeLeft--;
                 document.getElementById('main-timer').innerText = timeLeft;
@@ -205,7 +205,10 @@
         };
 
         const interval = setInterval(poll, 800);
-        document.addEventListener('htmx:beforeSwap', () => clearInterval(interval), {once:true});
+        document.addEventListener('htmx:beforeSwap', () => {
+            clearInterval(interval);
+            clearInterval(localTimer);
+        }, {once:true});
     })();
 
     function navTo(url) {
