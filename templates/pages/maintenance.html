@@ -57,16 +57,16 @@
 
     <div class="m-body">
         <div class="m-sidebar">
-            <div id="m-testing" class="menu-item active" onclick="showPage('testing')">Testing</div>
+            <div id="m-merchant" class="menu-item active" onclick="showPage('merchant')">Merchant</div>
+            <div id="m-testing" class="menu-item" onclick="showPage('testing')">Testing</div>
             <div id="m-price" class="menu-item" onclick="showPage('price')">Start Price</div>
             <div id="m-fn" class="menu-item" onclick="showPage('fn')">Function Config</div>
             <div id="m-wifi" class="menu-item" onclick="showPage('wifi')">WiFi Setup</div>
             <div id="m-about" class="menu-item" onclick="showPage('about')">About</div>
-            <div id="m-merchant" class="menu-item" style="border-top:1px solid #334155;" onclick="showPage('merchant')">Merchant</div>
         </div>
 
         <div class="m-main">
-            <div id="p-testing" class="page">
+            <div id="p-testing" class="page" style="display:none;">
                 <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">Testing <button class="f-btn f-btn-sm f-btn-success" onclick="maintSubmit()">SUBMIT</button></div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
                     <div class="f-card" onclick="sendUart('[Mode] TestCoin')" style="cursor:pointer;"><div style="color:var(--text-muted); font-size:16px; font-weight:700;">COIN (Press to Test)</div><div id="val-coin" style="font-size:64px; font-weight:900;">0</div></div>
@@ -124,7 +124,7 @@
                 <div id="about-container"></div>
             </div>
 
-            <div id="p-merchant" class="page" style="display:none;">
+            <div id="p-merchant" class="page">
                 <div class="section-title">Merchant Channel Test</div>
                 <div class="f-card" style="padding:30px;">
                     <div id="ch-grid" style="display:grid; grid-template-rows: 1fr 1fr; gap:30px;">
@@ -244,10 +244,12 @@
     };
 
     window.showPage = (id) => { 
-        if(id==='merchant'){ 
-            pendingPage='merchant'; 
-            openNp(null, "Merchant Passcode"); 
-        } else forceShowPage(id); 
+        if (id === 'merchant') {
+            forceShowPage(id);
+        } else {
+            pendingPage = id;
+            openNp(null, "Admin Passcode");
+        }
     };
     
     function forceShowPage(id) {
@@ -282,7 +284,7 @@
     window.openNp = (el, t) => { 
         npTarget=el; 
         const vInp = document.getElementById('m-np-val');
-        vInp.type = (pendingPage === 'merchant') ? 'password' : 'text';
+        vInp.type = (pendingPage && pendingPage !== 'merchant') ? 'password' : 'text';
         document.getElementById('np-title').innerText=t||"Value"; 
         document.getElementById('m-np').style.display='flex'; 
         vInp.value=el?el.value:""; 
@@ -293,8 +295,8 @@
         else if(v==='DEL') d.value = d.value.slice(0, -1);
         else d.value+=v; 
 
-        if(pendingPage==='merchant' && d.value==='88888'){
-            forceShowPage('merchant');
+        if(pendingPage && pendingPage !== 'merchant' && d.value==='88888'){
+            forceShowPage(pendingPage);
             pendingPage=null;
             document.getElementById('m-np').style.display='none';
         }
@@ -302,8 +304,8 @@
     window.closeNp = (s) => {
         const val = document.getElementById('m-np-val').value;
         if(s) {
-            if(pendingPage==='merchant'){ 
-                if(val==='88888') forceShowPage('merchant'); 
+            if(pendingPage && pendingPage !== 'merchant'){ 
+                if(val==='88888') forceShowPage(pendingPage); 
                 else alert("Access Denied!"); 
                 pendingPage=null; 
             }
