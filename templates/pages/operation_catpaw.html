@@ -75,7 +75,7 @@
         let timeLeft = 0;
         let isPaused = false;
         let timerStarted = false;
-        let lastActionSeq = 0;
+        let lastActionSeq = Date.now() / 1000; // Ignore history from previous sessions
         let lastSchedSeq = 0;
 
         // Render functions
@@ -95,6 +95,10 @@
                 if (timeLeft <= 0) {
                     timerStarted = false;
                     document.getElementById('status-text').innerText = 'COMPLETED';
+                    // Return to home properly
+                    setTimeout(() => {
+                        window.location.href = '/'; 
+                    }, 3000);
                 }
             }
         }, 1000);

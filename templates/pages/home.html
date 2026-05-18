@@ -182,11 +182,26 @@
         document.getElementById('admin-numpad').style.display = 'none';
     };
 
+    let lastSeenStateSeq = 0;
+    fetch('/api/action_state').then(r=>r.json()).then(d => {
+        if(d.state_event) lastSeenStateSeq = d.state_event.seq;
+    }).catch(()=>{});
+
     const poll = setInterval(async () => {
         try {
-            // 1. MQTT Status
+            // 1. MQTT Status & State Event
             const res = await fetch('/api/action_state');
             const d = await res.json();
+            
+            // Check for Maintenance State Command
+            if (d.state_event && d.state_event.seq > lastSeenStateSeq) {
+                lastSeenStateSeq = d.state_event.seq;
+                const stateName = d.state_event.name.toLowerCase();
+                if (stateName === 'maintenance' || stateName === 'maint') {
+                    if (isPlayingVideo) stopVideo();
+                    htmx.ajax('GET', '/page/maintenance', {target: '#content'});
+                }
+            }
             
             const dot = document.getElementById('mqtt-dot');
             const txt = document.getElementById('mqtt-text');

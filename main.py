@@ -151,8 +151,11 @@ def _parse_line(line: str):
         except: pass
 
     # 2. State & MQTT
-    if line.startswith("[State]"):
-        shared_state["last_state_event"] = {"name": line.replace("[State]", "").strip(), "seq": time.time()}
+    lower_line = line.lower()
+    if lower_line.startswith("[state]"):
+        import re
+        state_name = re.sub(r'(?i)\[state\]', '', line).strip()
+        shared_state["last_state_event"] = {"name": state_name, "seq": time.time()}
     elif "[MQTT]" in line:
         shared_state["mqtt_online"] = ("online" in line.lower())
     elif "[Coin]" in line:
