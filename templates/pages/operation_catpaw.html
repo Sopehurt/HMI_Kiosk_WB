@@ -29,14 +29,9 @@
 
             <!-- Controls -->
             <div style="display:flex; gap:20px; height:120px;">
-                <button id="btn-pause" onclick="cpTogglePause(this)" style="
-                    flex:1; background:#F59E0B; border:none; border-radius:24px;
-                    color:white; font-size:2rem; font-weight:bold; cursor:pointer;
-                ">PAUSE</button>
-                
-                <button onclick="cpForceFinish()" style="
+                <button onclick="document.getElementById('confirm-finish-overlay').style.display='flex'" style="
                     flex:1; background:#EF4444; border:none; border-radius:24px;
-                    color:white; font-size:1.6rem; font-weight:bold; cursor:pointer;
+                    color:white; font-size:2.5rem; font-weight:bold; cursor:pointer; letter-spacing: 2px;
                 ">FINISH EARLY</button>
             </div>
         </div>
@@ -46,6 +41,15 @@
     <div id="finish-overlay" style="display:none; position:absolute; inset:0; background:#111827; z-index:300; justify-content:center; align-items:center; flex-direction:column; gap:40px;">
         <h2 style="color:#10B981; font-size:6rem; font-weight:bold; letter-spacing:10px; margin:0;">COMPLETED</h2>
         <button style="background:#3B82F6; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:20px 80px; cursor:pointer;" onclick="navTo('/page/home')">Return to Home</button>
+    </div>
+
+    <!-- Confirm Finish overlay -->
+    <div id="confirm-finish-overlay" style="display:none; position:absolute; inset:0; background:rgba(17,24,39,0.95); z-index:400; justify-content:center; align-items:center; flex-direction:column; gap:40px;">
+        <h2 style="color:white; font-size:4rem; font-weight:bold; letter-spacing:2px; margin:0; text-align:center;">Are you sure you want to finish early?</h2>
+        <div style="display:flex; gap:30px; margin-top:20px;">
+            <button style="background:#4B5563; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:25px 60px; cursor:pointer;" onclick="document.getElementById('confirm-finish-overlay').style.display='none'">CANCEL</button>
+            <button style="background:#EF4444; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:25px 60px; cursor:pointer;" onclick="document.getElementById('confirm-finish-overlay').style.display='none'; cpForceFinish();">CONFIRM FINISH</button>
+        </div>
     </div>
 </div>
 

@@ -129,16 +129,16 @@
                 <div class="f-card" style="padding:30px;">
                     <div id="ch-grid" style="display:grid; grid-template-rows: 1fr 1fr; gap:30px;">
                         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
-                            <button id="btn-ch1" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(1)">CH1</button>
-                            <button id="btn-ch3" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(3)">CH3</button>
-                            <button id="btn-ch5" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(5)">CH5</button>
-                            <button id="btn-ch7" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(7)">CH7</button>
+                            <button id="btn-ch7" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(7)">ฉีดน้ำ</button>
+                            <button id="btn-ch6" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(6)">ฉีดโฟม</button>
+                            <button id="btn-ch5" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(5)">เป่าลม</button>
+                            <button id="btn-ch4" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(4)">น้ำประปา</button>
                         </div>
                         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
-                            <button id="btn-ch0" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(0)">CH0</button>
-                            <button id="btn-ch2" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(2)">CH2</button>
-                            <button id="btn-ch4" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(4)">CH4</button>
-                            <button id="btn-ch6" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(6)">CH6</button>
+                            <button id="btn-ch3" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(3)">ดูดฝุ่น</button>
+                            <button id="btn-ch2" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(2)">ยางดำ</button>
+                            <button id="btn-ch1" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(1)">Wax</button>
+                            <button id="btn-ch0" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(0)">น้ำหอม</button>
                         </div>
                     </div>
                     <div id="ch-status" style="margin-top:20px; text-align:center; color:var(--text-muted); font-size:20px; font-weight:800;">All Channels Ready</div>
@@ -388,12 +388,17 @@
         let html = '<table class="f-table">';
         if (currentMode === 'CATCARWASH') {
             html += '<tr><th>Name</th><th>Enable</th><th>Order</th><th>Time</th></tr>';
-            const names = ["ฉีดน้ำ", "ยางดำ", "WAX", "ดูดฝุ่น", "น้ำหอม", "ลม", "ประปา", "โฟม"];
+            const names = ["น้ำหอม", "Wax", "ยางดำ", "ดูดฝุ่น", "น้ำประปา", "เป่าลม", "ฉีดโฟม", "ฉีดน้ำ"];
             const en = config.fnEnable || config.fn_enable || [true,true,true,true,true,true,true,true];
-            const t = config.fnTime || config.fn_time || [15,12,12,12,20,15,15,10];
+            const t = config.fnTime || config.fn_time || [11,10,9,8,7,6,5,4];
             const o = config.fnOrder || config.fn_order || [0,1,2,3,4,5,6,7];
-            names.forEach((n, i) => { 
-                html += `<tr data-idx="${i}"><td>${n}</td><td><input type="checkbox" class="f-check" ${en[i]?'checked':''}></td><td><input class="f-input" value="${o[i]}" style="width:50px;height:35px;" onclick="openNp(this)"></td><td><input class="f-input" value="${t[i]}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; 
+            
+            // Display order requested by user: ฉีดน้ำ, ฉีดโฟม, เป่าลม, น้ำประปา, ดูดฝุ่น, ยางดำ, Wax, น้ำหอม
+            const displayOrder = [7, 6, 5, 4, 3, 2, 1, 0];
+            
+            displayOrder.forEach(idx => { 
+                let n = names[idx];
+                html += `<tr data-idx="${idx}"><td>${n}</td><td><input type="checkbox" class="f-check" ${en[idx]?'checked':''}></td><td><input class="f-input" value="${o[idx]}" style="width:50px;height:35px;" onclick="openNp(this)"></td><td><input class="f-input" value="${t[idx]}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; 
             });
         } else {
             html += '<tr><th>NAME</th><th style="text-align:center;">Start_Time</th><th style="text-align:center;">End_Time</th></tr>';
@@ -419,11 +424,12 @@
     window.saveConfig = async () => {
         let payload = { machine_system: currentMode };
         if(currentMode === 'CATCARWASH') {
-            let en = [], t = [], o = [];
+            let en = new Array(8), t = new Array(8), o = new Array(8);
             document.querySelectorAll('#fn-container tr[data-idx]').forEach(tr => {
-                en.push(tr.querySelector('.f-check').checked);
-                o.push(parseInt(tr.querySelectorAll('.f-input')[0].value));
-                t.push(parseInt(tr.querySelectorAll('.f-input')[1].value));
+                let idx = parseInt(tr.getAttribute('data-idx'));
+                en[idx] = tr.querySelector('.f-check').checked;
+                o[idx] = parseInt(tr.querySelectorAll('.f-input')[0].value);
+                t[idx] = parseInt(tr.querySelectorAll('.f-input')[1].value);
             });
             payload.fnEnable = en; payload.fnTime = t; payload.fnOrder = o;
         } else {
