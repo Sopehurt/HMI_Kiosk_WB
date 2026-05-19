@@ -20,14 +20,14 @@
 
     <!-- Buttons Grid: Hardcoded as requested -->
     <div id="btn-grid" style="flex:1; padding:20px 32px; display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(2, 1fr); gap:12px;">
-        <button class="op-btn" id="btn-fn7" onclick="toggleFn(7, 'ฉีดน้ำ', 'fn7')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ฉีดน้ำ</button>
-        <button class="op-btn" id="btn-fn6" onclick="toggleFn(6, 'ฉีดโฟม', 'fn6')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ฉีดโฟม</button>
-        <button class="op-btn" id="btn-fn5" onclick="toggleFn(5, 'เป่าลม', 'fn5')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">เป่าลม</button>
-        <button class="op-btn" id="btn-fn4" onclick="toggleFn(4, 'น้ำประปา', 'fn4')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">น้ำประปา</button>
-        <button class="op-btn" id="btn-fn3" onclick="toggleFn(3, 'ดูดฝุ่น', 'fn3')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ดูดฝุ่น</button>
-        <button class="op-btn" id="btn-fn2" onclick="toggleFn(2, 'ยางดำ', 'fn2')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ยางดำ</button>
-        <button class="op-btn" id="btn-fn1" onclick="toggleFn(1, 'Wax', 'fn1')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Wax</button>
-        <button class="op-btn" id="btn-fn0" onclick="toggleFn(0, 'น้ำหอม', 'fn0')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">น้ำหอม</button>
+        <button class="op-btn" id="btn-Spray" onclick="toggleFn('Spray', 'ฉีดน้ำ')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ฉีดน้ำ</button>
+        <button class="op-btn" id="btn-Foam" onclick="toggleFn('Foam', 'ฉีดโฟม')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ฉีดโฟม</button>
+        <button class="op-btn" id="btn-Air" onclick="toggleFn('Air', 'เป่าลม')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">เป่าลม</button>
+        <button class="op-btn" id="btn-Water" onclick="toggleFn('Water', 'น้ำประปา')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">น้ำประปา</button>
+        <button class="op-btn" id="btn-Vac" onclick="toggleFn('Vac', 'ดูดฝุ่น')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ดูดฝุ่น</button>
+        <button class="op-btn" id="btn-Tire" onclick="toggleFn('Tire', 'ยางดำ')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ยางดำ</button>
+        <button class="op-btn" id="btn-Wax" onclick="toggleFn('Wax', 'Wax')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Wax</button>
+        <button class="op-btn" id="btn-Frag" onclick="toggleFn('Frag', 'น้ำหอม')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">น้ำหอม</button>
     </div>
 
     <!-- Finish: Clean & Fast -->
@@ -52,25 +52,25 @@
 
 <script>
     (function() {
-        let activeIdx = null;
+        let activeFn = null;
 
-        window.toggleFn = (idx, thName, enName) => {
+        window.toggleFn = (enName, thName) => {
             const btn = document.getElementById('btn-' + enName);
-            if (activeIdx === idx) {
-                fetch('/api/uart_send?msg=[Action] Off fn(' + idx + ')');
+            if (activeFn === enName) {
+                fetch('/api/uart_send?msg=[Action] Off ' + enName);
                 deactivateUI();
             } else {
-                if (activeIdx !== null) fetch('/api/uart_send?msg=[Action] Off fn(' + activeIdx + ')');
+                if (activeFn !== null) fetch('/api/uart_send?msg=[Action] Off ' + activeFn);
                 // Tiny delay to ensure previous off is sent
                 setTimeout(() => {
-                    fetch('/api/uart_send?msg=[Action] On fn(' + idx + ')');
+                    fetch('/api/uart_send?msg=[Action] On ' + enName);
                 }, 30);
-                activateUI(idx, thName, enName);
+                activateUI(enName, thName);
             }
         };
 
-        function activateUI(idx, thName, enName) {
-            activeIdx = idx;
+        function activateUI(enName, thName) {
+            activeFn = enName;
             const btns = document.querySelectorAll('.op-btn');
             for(let b of btns) {
                 b.classList.toggle('active', b.id === 'btn-' + enName);
@@ -82,7 +82,7 @@
         }
 
         function deactivateUI() {
-            activeIdx = null;
+            activeFn = null;
             const btns = document.querySelectorAll('.op-btn');
             for(let b of btns) {
                 b.classList.remove('active', 'disabled');

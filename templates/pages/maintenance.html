@@ -129,16 +129,16 @@
                 <div class="f-card" style="padding:30px;">
                     <div id="ch-grid" style="display:grid; grid-template-rows: 1fr 1fr; gap:30px;">
                         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
-                            <button id="btn-ch7" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(7)">ฉีดน้ำ</button>
-                            <button id="btn-ch6" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(6)">ฉีดโฟม</button>
-                            <button id="btn-ch5" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(5)">เป่าลม</button>
-                            <button id="btn-ch4" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(4)">น้ำประปา</button>
+                            <button id="btn-Spray" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Spray')">ฉีดน้ำ</button>
+                            <button id="btn-Foam" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Foam')">ฉีดโฟม</button>
+                            <button id="btn-Air" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Air')">เป่าลม</button>
+                            <button id="btn-Water" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Water')">น้ำประปา</button>
                         </div>
                         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
-                            <button id="btn-ch3" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(3)">ดูดฝุ่น</button>
-                            <button id="btn-ch2" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(2)">ยางดำ</button>
-                            <button id="btn-ch1" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(1)">Wax</button>
-                            <button id="btn-ch0" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH(0)">น้ำหอม</button>
+                            <button id="btn-Vac" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Vac')">ดูดฝุ่น</button>
+                            <button id="btn-Tire" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Tire')">ยางดำ</button>
+                            <button id="btn-Wax" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Wax')">Wax</button>
+                            <button id="btn-Frag" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Frag')">น้ำหอม</button>
                         </div>
                     </div>
                     <div id="ch-status" style="margin-top:20px; text-align:center; color:var(--text-muted); font-size:20px; font-weight:800;">All Channels Ready</div>
@@ -227,19 +227,19 @@
     window.pressKb = (k) => { let d=document.getElementById('m-kb-val'); if(k==='BS') d.value=d.value.slice(0,-1); else d.value+=k; };
     window.closeKb = (s) => { if(s && kbTarget) kbTarget.value=document.getElementById('m-kb-val').value; document.getElementById('m-kb').style.display='none'; kbTarget=null; };
 
-    window.toggleCH = function(ch) {
-        if (activeCH !== null && activeCH !== ch) return;
-        const btn = document.getElementById('btn-ch' + ch);
-        if (activeCH === ch) {
+    window.toggleCH = function(enName) {
+        if (activeCH !== null && activeCH !== enName) return;
+        const btn = document.getElementById('btn-' + enName);
+        if (activeCH === enName) {
             btn.style.background = '#374151'; activeCH = null;
             document.querySelectorAll('#ch-grid button').forEach(b => { b.style.opacity='1'; b.style.cursor='pointer'; });
             document.getElementById('ch-status').innerText = 'All Channels Ready';
-            sendUart(`[Merchant] fn${ch} Off`);
+            sendUart(`[Merchant] ${enName} Off`);
         } else {
-            activeCH = ch; btn.style.background = 'var(--secondary)';
-            document.querySelectorAll('#ch-grid button').forEach(b => { if(b.id !== 'btn-ch'+ch){ b.style.opacity='0.3'; b.style.cursor='not-allowed'; } });
-            document.getElementById('ch-status').innerText = `CH${ch} is ACTIVE`;
-            sendUart(`[Merchant] fn${ch} On`);
+            activeCH = enName; btn.style.background = 'var(--secondary)';
+            document.querySelectorAll('#ch-grid button').forEach(b => { if(b.id !== 'btn-'+enName){ b.style.opacity='0.3'; b.style.cursor='not-allowed'; } });
+            document.getElementById('ch-status').innerText = `${enName} is ACTIVE`;
+            sendUart(`[Merchant] ${enName} On`);
         }
     };
 
