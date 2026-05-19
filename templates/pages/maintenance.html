@@ -260,7 +260,15 @@
         if(id === 'fn') renderFn(); if(id === 'about') renderAbout(); if(id === 'wifi') updateWifiStatus();
     }
 
-    window.adjPrice = (v) => { let el=document.getElementById('price-val'); let p=parseInt(el.innerText)+v; el.innerText=p<0?0:p; };
+    window.adjPrice = (v) => { 
+        let el = document.getElementById('price-val'); 
+        let curr = parseInt(el.innerText);
+        let p = curr + v;
+        if (curr === 5 && v === -5) p = 1;
+        else if (curr === 1 && v === 5) p = 5;
+        else if (p < 1) p = 1;
+        el.innerText = p; 
+    };
     window.savePrice = async () => {
         const p = parseInt(document.getElementById('price-val').innerText);
         const res = await fetch('/api/settings', {
