@@ -24,7 +24,6 @@
                     <span id="main-timer" style="font-size:10rem; font-weight:bold; color:white; line-height:1; font-family:monospace;">--</span>
                     <span style="font-size:2rem; color:#9CA3AF; font-weight:bold; margin-left:15px; letter-spacing:2px;">SEC</span>
                 </div>
-                <div id="door-status" style="margin-top:10px; color:#EF4444; font-weight:bold; font-size:1.2rem; visibility:hidden;">DOOR OPENED</div>
             </div>
 
             <!-- Controls -->
@@ -50,6 +49,12 @@
             <button style="background:#4B5563; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:25px 60px; cursor:pointer;" onclick="document.getElementById('confirm-finish-overlay').style.display='none'">CANCEL</button>
             <button style="background:#EF4444; border:none; border-radius:16px; color:white; font-size:2rem; font-weight:bold; padding:25px 60px; cursor:pointer;" onclick="document.getElementById('confirm-finish-overlay').style.display='none'; cpForceFinish();">CONFIRM FINISH</button>
         </div>
+    </div>
+
+    <!-- Door Open Overlay -->
+    <div id="door-overlay" style="display:none; position:absolute; inset:0; background:rgba(17,24,39,0.98); z-index:500; justify-content:center; align-items:center; flex-direction:column; gap:30px;">
+        <h2 style="color:#EF4444; font-size:6rem; font-weight:bold; letter-spacing:2px; margin:0; text-align:center;">DOOR OPENED</h2>
+        <h3 style="color:white; font-size:3.5rem; font-weight:bold; margin:0; text-align:center;">กรุณาปิดตู้เพื่อทำงานต่อ</h3>
     </div>
 </div>
 
@@ -169,20 +174,15 @@
 
         function updatePauseUI(paused, door) {
             isPaused = paused;
-            const btn = document.getElementById('btn-pause');
             const st = document.getElementById('status-text');
-            const dr = document.getElementById('door-status');
+            const dr = document.getElementById('door-overlay');
             
             if (isPaused) {
-                btn.innerText = 'RESUME';
-                btn.style.background = '#10B981';
                 st.innerText = 'PAUSED';
-                dr.style.visibility = door ? 'visible' : 'hidden';
+                dr.style.display = door ? 'flex' : 'none';
             } else {
-                btn.innerText = 'PAUSE';
-                btn.style.background = '#F59E0B';
                 st.innerText = 'RUNNING';
-                dr.style.visibility = 'hidden';
+                dr.style.display = 'none';
             }
         }
 

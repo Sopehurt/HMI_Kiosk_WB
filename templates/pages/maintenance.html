@@ -395,7 +395,7 @@
         const box = document.getElementById('fn-container');
         let html = '<table class="f-table">';
         if (currentMode === 'CATCARWASH') {
-            html += '<tr><th>Name</th><th>Enable</th><th>Order</th><th>Time</th></tr>';
+            html += '<tr><th>Name</th><th>Enable</th><th>Time</th></tr>';
             const names = ["น้ำหอม", "Wax", "ยางดำ", "ดูดฝุ่น", "น้ำประปา", "เป่าลม", "ฉีดโฟม", "ฉีดน้ำ"];
             const en = config.fnEnable || config.fn_enable || [true,true,true,true,true,true,true,true];
             const t = config.fnTime || config.fn_time || [11,10,9,8,7,6,5,4];
@@ -406,7 +406,7 @@
             
             displayOrder.forEach(idx => { 
                 let n = names[idx];
-                html += `<tr data-idx="${idx}"><td>${n}</td><td><input type="checkbox" class="f-check" ${en[idx]?'checked':''}></td><td><input class="f-input" value="${o[idx]}" style="width:50px;height:35px;" onclick="openNp(this)"></td><td><input class="f-input" value="${t[idx]}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; 
+                html += `<tr data-idx="${idx}"><td>${n}</td><td><input type="checkbox" class="f-check" ${en[idx]?'checked':''}></td><td><input class="f-input" value="${t[idx]}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; 
             });
         } else {
             html += '<tr><th>NAME</th><th style="text-align:center;">Start_Time</th><th style="text-align:center;">End_Time</th></tr>';
@@ -432,12 +432,12 @@
     window.saveConfig = async () => {
         let payload = { machine_system: currentMode };
         if(currentMode === 'CATCARWASH') {
-            let en = new Array(8), t = new Array(8), o = new Array(8);
+            let en = new Array(8), t = new Array(8);
+            let o = config.fnOrder || config.fn_order || [0,1,2,3,4,5,6,7];
             document.querySelectorAll('#fn-container tr[data-idx]').forEach(tr => {
                 let idx = parseInt(tr.getAttribute('data-idx'));
                 en[idx] = tr.querySelector('.f-check').checked;
-                o[idx] = parseInt(tr.querySelectorAll('.f-input')[0].value);
-                t[idx] = parseInt(tr.querySelectorAll('.f-input')[1].value);
+                t[idx] = parseInt(tr.querySelectorAll('.f-input')[0].value);
             });
             payload.fnEnable = en; payload.fnTime = t; payload.fnOrder = o;
         } else {
