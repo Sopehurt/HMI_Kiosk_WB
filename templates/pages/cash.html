@@ -18,6 +18,10 @@
             <div style="display:flex; align-items:baseline; gap:10px;">
                 <span id="cash-balance-large" style="font-size:10rem; font-weight:bold; color:#10B981; text-shadow:0 0 30px rgba(16,185,129,0.3);">0</span>
                 <span style="font-size:3rem; color:#4B5563; font-weight:bold;">/</span>
+                <div id="promo-display" style="display:none; align-items:baseline; gap:8px;">
+                    <span id="orig-price" style="font-size:3rem; color:#EF4444; font-weight:bold; text-decoration:line-through;"></span>
+                    <span id="promo-pct" style="font-size:1.2rem; color:#FCA5A5; font-weight:bold; background:rgba(239,68,68,0.2); padding:4px 8px; border-radius:8px;"></span>
+                </div>
                 <span id="start-price-label" style="font-size:4rem; color:white; font-weight:bold;">20</span>
                 <span style="font-size:1.5rem; color:#4B5563; font-weight:bold; margin-left:10px;">THB</span>
             </div>
@@ -45,7 +49,21 @@
             try {
                 const res = await fetch('/api/settings?t=' + Date.now());
                 const config = await res.json();
-                startPrice = config.startPrices || 20;
+                
+                let originalPrice = config.startPrices || config.start_prices || 20;
+                let promo = config.proMo || config.pro_mo;
+                
+                if (promo !== undefined && promo !== null && promo < 1 && promo > 0) {
+                    startPrice = Math.floor(originalPrice * promo);
+                    document.getElementById('promo-display').style.display = 'flex';
+                    document.getElementById('orig-price').innerText = originalPrice;
+                    let pct = Math.round((1 - promo) * 100);
+                    document.getElementById('promo-pct').innerText = '-' + pct + '%';
+                } else {
+                    startPrice = originalPrice;
+                    document.getElementById('promo-display').style.display = 'none';
+                }
+                
                 document.getElementById('start-price-label').innerText = startPrice;
                 if (typeof currentDisplayedBalance !== 'undefined') {
                     updateCashUI(currentDisplayedBalance);
