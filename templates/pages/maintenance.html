@@ -22,7 +22,7 @@
     .m-body { flex: 1; display: flex; overflow: hidden; }
 
     .m-sidebar { width: 220px; background: var(--bg-side); border-right: 1px solid #2d3748; display: flex; flex-direction: column; }
-    .menu-item { padding: 22px 25px; font-size: 20px; font-weight: 800; color: var(--text-muted); cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .menu-item { height: 77px; padding: 0 25px; font-size: 20px; line-height: 1.2; font-weight: 800; color: var(--text-muted); cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; overflow-wrap: anywhere; }
     .menu-item.active { background: var(--primary); color: white; }
 
     .m-main { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; }
@@ -44,6 +44,21 @@
     .f-tabs { display: flex; background: var(--bg-side); padding: 5px; border-radius: 10px; gap: 5px; margin-bottom: 20px; width: fit-content; border: 1px solid #2d3748; }
     .f-tab { padding: 10px 20px; border: none; border-radius: 6px; font-size: 15px; font-weight: 800; color: var(--text-muted); background: transparent; cursor: pointer; }
     .f-tab.active { background: var(--secondary); color: white; }
+    #ch-grid .f-btn { line-height: 1.15; padding: 10px; white-space: normal; overflow-wrap: anywhere; }
+
+    .language-page { display: flex; flex-direction: column; max-width: 760px; }
+    .language-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+    .language-card { height: 170px; background: var(--bg-side); border: 2px solid #334155; border-radius: 10px; color: white; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; transition: background 0.15s ease, border-color 0.15s ease; }
+    .language-card.pending { background: #302524; border-color: #f59e0b; }
+    .language-code { font-size: 42px; line-height: 1; font-weight: 900; }
+    .language-name { min-height: 34px; font-size: 25px; line-height: 1.2; font-weight: 900; text-align: center; word-break: keep-all; }
+    .language-save { width: 100%; height: 70px; margin-top: 30px; font-size: 24px; }
+    .language-note { min-height: 22px; margin-top: 14px; color: var(--text-muted); font-size: 15px; font-weight: 800; text-align: center; }
+    .currency-select { display:flex; align-items:center; justify-content:space-between; gap:18px; background:var(--bg-side); border:1px solid #2d3748; border-radius:8px; padding:14px 18px; margin-bottom:18px; }
+    .currency-label { color:var(--text-muted); font-size:18px; font-weight:900; }
+    .currency-options { display:flex; gap:10px; }
+    .currency-option { min-width:145px; height:52px; background:#1e293b; border:2px solid #334155; border-radius:8px; color:white; font-size:18px; font-weight:900; cursor:pointer; }
+    .currency-option.active { background:#302524; border-color:#f59e0b; }
 
     .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; display:none; justify-content:center; align-items:center; }
     input[type="checkbox"].f-check { width: 40px; height: 40px; cursor: pointer; accent-color: var(--primary); }
@@ -51,23 +66,24 @@
 
 <div class="m-root" onclick="sendUart('[Action] Touch')">
     <div class="m-header">
-        <div class="m-title">MAINTENANCE</div>
-        <button class="btn-exit" onclick="htmx.ajax('GET', '/page/home', {target: '#content'})">EXIT</button>
+        <div class="m-title" data-i18n="maintenanceTitle">MAINTENANCE</div>
+        <button class="btn-exit" onclick="htmx.ajax('GET', '/page/home', {target: '#content'})" data-i18n="exit">EXIT</button>
     </div>
 
     <div class="m-body">
         <div class="m-sidebar">
-            <div id="m-merchant" class="menu-item active" onclick="showPage('merchant')">Merchant</div>
-            <div id="m-testing" class="menu-item" onclick="showPage('testing')">Testing</div>
-            <div id="m-price" class="menu-item" onclick="showPage('price')">Start Price</div>
-            <div id="m-fn" class="menu-item" onclick="showPage('fn')">Function Config</div>
-            <div id="m-wifi" class="menu-item" onclick="showPage('wifi')">WiFi Setup</div>
-            <div id="m-about" class="menu-item" onclick="showPage('about')">About</div>
+            <div id="m-merchant" class="menu-item active" onclick="showPage('merchant')" data-i18n="merchant">Merchant</div>
+            <div id="m-testing" class="menu-item" onclick="showPage('testing')" data-i18n="testing">Testing</div>
+            <div id="m-price" class="menu-item" onclick="showPage('price')" data-i18n="startPrice">Start Price</div>
+            <div id="m-fn" class="menu-item" onclick="showPage('fn')" data-i18n="functionConfig">Function Config</div>
+            <div id="m-wifi" class="menu-item" onclick="showPage('wifi')" data-i18n="wifiSetup">WiFi Setup</div>
+            <div id="m-language" class="menu-item" onclick="showPage('language')" data-i18n="language">Language</div>
+            <div id="m-about" class="menu-item" onclick="showPage('about')" data-i18n="about">About</div>
         </div>
 
         <div class="m-main">
             <div id="p-testing" class="page" style="display:none;">
-                <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">Testing <button class="f-btn f-btn-sm f-btn-success" onclick="maintSubmit()">SUBMIT</button></div>
+                <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;"><span data-i18n="testing">Testing</span> <button class="f-btn f-btn-sm f-btn-success" onclick="maintSubmit()" data-i18n="submit">SUBMIT</button></div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
                     <div class="f-card" onclick="sendUart('[Mode] TestCoin')" style="cursor:pointer;"><div style="color:var(--text-muted); font-size:16px; font-weight:700;">COIN (Press to Test)</div><div id="val-coin" style="font-size:64px; font-weight:900;">0</div></div>
                     <div class="f-card" onclick="sendUart('[Mode] TestBank')" style="cursor:pointer;"><div style="color:var(--text-muted); font-size:16px; font-weight:700;">BANK (Press to Test)</div><div id="val-bank" style="font-size:64px; font-weight:900;">0</div></div>
@@ -75,34 +91,41 @@
             </div>
 
             <div id="p-price" class="page" style="display:none;">
-                <div class="section-title">Start Price (THB)</div>
-                <div class="f-card" style="display:flex; align-items:center; justify-content:center; gap:40px; padding:50px;">
+                <div class="section-title" data-i18n="startPriceThb">Start Price (THB)</div>
+                <div class="currency-select">
+                    <div class="currency-label" data-i18n="currencySystem">Currency System</div>
+                    <div class="currency-options">
+                        <button id="currency-thb" class="currency-option" onclick="setCurrency('THB')">ไทย / THB</button>
+                        <button id="currency-lak" class="currency-option" onclick="setCurrency('LAK')">ລາວ / LAK</button>
+                    </div>
+                </div>
+                <div class="f-card" style="display:flex; align-items:center; justify-content:center; gap:40px; padding:34px 50px;">
                     <button class="f-btn f-btn-danger" style="width:100px; height:80px; font-size:32px;" onclick="adjPrice(-5)">-5</button>
                     <div id="price-val" style="font-size:96px; font-weight:900; color:var(--secondary);">20</div>
                     <button class="f-btn f-btn-success" style="width:100px; height:80px; font-size:32px;" onclick="adjPrice(5)">+5</button>
                 </div>
-                <button class="f-btn f-btn-success" style="margin-top:30px; width:100%; height:70px; font-size:24px;" onclick="savePrice()">SAVE PRICE</button>
+                <button class="f-btn f-btn-success" style="margin-top:18px; width:100%; height:64px; font-size:24px;" onclick="savePrice()" data-i18n="savePrice">SAVE PRICE</button>
             </div>
 
             <div id="p-fn" class="page" style="display:none;">
-                <div class="section-title">Function Config</div>
+                <div class="section-title" data-i18n="functionConfig">Function Config</div>
                 <div id="fn-tabs" class="f-tabs">
                     <button class="f-tab active" onclick="setMode('CATCARWASH')">CATCARWASH</button>
                     <button class="f-tab" onclick="setMode('CATPAW-SHOE')">CATPAW-SHOE</button>
                     <button class="f-tab" onclick="setMode('CATPAW-HELMET')">CATPAW-HELMET</button>
                 </div>
                 <div id="fn-container" style="max-height:280px; overflow-y:auto; border:1px solid #2d3748; background:var(--bg-side);"></div>
-                <button class="f-btn f-btn-success" style="margin-top:15px; width:100%; height:60px;" onclick="saveConfig()">SAVE CONFIG</button>
+                <button class="f-btn f-btn-success" style="margin-top:15px; width:100%; height:60px;" onclick="saveConfig()" data-i18n="saveConfig">SAVE CONFIG</button>
             </div>
 
             <div id="p-wifi" class="page" style="display:none;">
-                <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">WiFi Setup <button id="btn-scan" class="f-btn f-btn-sm" onclick="scanWifi()">SCAN</button></div>
+                <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;"><span data-i18n="wifiSetup">WiFi Setup</span> <button id="btn-scan" class="f-btn f-btn-sm" onclick="scanWifi()" data-i18n="scan">SCAN</button></div>
                 <div class="f-card">
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
                         <input type="text" id="w-ssid" class="f-input" placeholder="SSID" style="text-align:left; flex:1;" onclick="openKb(this)">
                         <div style="display:flex; flex:1; position:relative;">
                             <input type="password" id="w-pass" class="f-input" placeholder="PASSWORD" style="text-align:left; flex:1; padding-right:80px;" onclick="openKb(this)">
-                            <button id="btn-show" onclick="togglePass()" style="position:absolute; right:5px; top:5px; bottom:5px; width:70px; background:#4a5568; border:none; color:white; border-radius:4px; font-weight:700; font-size:12px;">SHOW</button>
+                            <button id="btn-show" onclick="togglePass()" style="position:absolute; right:5px; top:5px; bottom:5px; width:70px; background:#4a5568; border:none; color:white; border-radius:4px; font-weight:700; font-size:12px;" data-i18n="show">SHOW</button>
                         </div>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:15px; border-radius:8px;">
@@ -111,21 +134,41 @@
                             <div id="w-status-ip" style="font-size:14px; color:var(--text-muted);">IP: --</div>
                         </div>
                         <div style="display:flex; gap:10px;">
-                            <button class="f-btn f-btn-danger f-btn-sm" onclick="forgetWifi()">FORGET</button>
-                            <button class="f-btn f-btn-success f-btn-sm" onclick="connectWifi()">CONNECT</button>
+                            <button class="f-btn f-btn-danger f-btn-sm" onclick="forgetWifi()" data-i18n="forget">FORGET</button>
+                            <button class="f-btn f-btn-success f-btn-sm" onclick="connectWifi()" data-i18n="connect">CONNECT</button>
                         </div>
                     </div>
                 </div>
                 <div id="w-list" style="margin-top:15px; max-height:200px; overflow-y:auto; border:1px solid #2d3748; background:var(--bg-side); border-radius:8px;"></div>
             </div>
 
+            <div id="p-language" class="page language-page" style="display:none;">
+                <div class="section-title" data-i18n="language">Language</div>
+                <div class="language-grid">
+                    <button type="button" class="language-card" data-lang-card="th" onclick="setPendingLanguage('th')">
+                        <span class="language-code">TH</span>
+                        <span class="language-name">ไทย</span>
+                    </button>
+                    <button type="button" class="language-card" data-lang-card="en" onclick="setPendingLanguage('en')">
+                        <span class="language-code">EN</span>
+                        <span class="language-name">English</span>
+                    </button>
+                    <button type="button" class="language-card" data-lang-card="lo" onclick="setPendingLanguage('lo')">
+                        <span class="language-code">LA</span>
+                        <span class="language-name">ລາວ</span>
+                    </button>
+                </div>
+                <button class="f-btn f-btn-success language-save" onclick="saveLanguage()" data-i18n="saveLanguage">SAVE LANGUAGE</button>
+                <div id="language-note" class="language-note" data-i18n="languagePendingNote">Select a language, then press save to apply.</div>
+            </div>
+
             <div id="p-about" class="page" style="display:none;">
-                <div class="section-title">Device Information</div>
+                <div class="section-title" data-i18n="deviceInfo">Device Information</div>
                 <div id="about-container"></div>
             </div>
 
             <div id="p-merchant" class="page">
-                <div class="section-title">Merchant Channel Test</div>
+                <div class="section-title" data-i18n="merchantChannelTest">Merchant Channel Test</div>
                 <div class="f-card" style="padding:30px;">
                     <div id="ch-grid" style="display:grid; grid-template-rows: 1fr 1fr; gap:30px;">
                         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
@@ -195,6 +238,269 @@
     let isShift = false;
     let pendingPage = null;
     let activeCH = null;
+    let currentLanguage = 'en';
+    let pendingLanguage = 'en';
+    let currentCurrency = 'THB';
+
+    const langText = {
+        en: {
+            maintenanceTitle: 'MAINTENANCE',
+            exit: 'EXIT',
+            merchant: 'Merchant',
+            testing: 'Testing',
+            startPrice: 'Start Price',
+            functionConfig: 'Function Config',
+            wifiSetup: 'WiFi Setup',
+            language: 'Language',
+            about: 'About',
+            submit: 'SUBMIT',
+            startPriceThb: 'Start Price (THB)',
+            currencySystem: 'Currency System',
+            savePrice: 'SAVE PRICE',
+            saveConfig: 'SAVE CONFIG',
+            scan: 'SCAN',
+            scanning: 'SCANNING...',
+            show: 'SHOW',
+            hide: 'HIDE',
+            forget: 'FORGET',
+            connect: 'CONNECT',
+            saveLanguage: 'SAVE LANGUAGE',
+            languagePendingNote: 'Select a language, then press save to apply.',
+            languageSaved: 'Language Saved!',
+            deviceInfo: 'Device Information',
+            merchantChannelTest: 'Merchant Channel Test',
+            adminPasscode: 'Admin Passcode',
+            allChannelsReady: 'All Channels Ready',
+            isActive: 'is ACTIVE',
+            connected: 'Connected',
+            ip: 'IP',
+            noNetworks: 'No Networks Found',
+            priceSaved: 'Price Saved!',
+            configSaved: 'Config Saved!',
+            accessDenied: 'Access Denied!',
+            selectSsid: 'Select SSID',
+            connectSent: 'Connect Command Sent',
+            failed: 'Failed',
+            unknownError: 'Unknown error',
+            enterForgetSsid: 'Enter/Select SSID to Forget',
+            deleteWifi: 'Delete WiFi',
+            wifiDeleted: 'WiFi Deleted'
+        },
+        th: {
+            maintenanceTitle: 'บำรุงรักษา',
+            exit: 'ออก',
+            merchant: 'ร้านค้า',
+            testing: 'ทดสอบ',
+            startPrice: 'ราคาเริ่มต้น',
+            functionConfig: 'ตั้งค่าฟังก์ชัน',
+            wifiSetup: 'ตั้งค่า WiFi',
+            language: 'ภาษา',
+            about: 'เกี่ยวกับ',
+            submit: 'ยืนยัน',
+            startPriceThb: 'ราคาเริ่มต้น (บาท)',
+            savePrice: 'บันทึกราคา',
+            saveConfig: 'บันทึกการตั้งค่า',
+            scan: 'สแกน',
+            scanning: 'กำลังสแกน...',
+            show: 'แสดง',
+            hide: 'ซ่อน',
+            forget: 'ลืม',
+            connect: 'เชื่อมต่อ',
+            saveLanguage: 'บันทึกภาษา',
+            languagePendingNote: 'เลือกภาษา แล้วกดบันทึกเพื่อใช้งาน',
+            languageSaved: 'บันทึกภาษาแล้ว!',
+            deviceInfo: 'ข้อมูลอุปกรณ์',
+            merchantChannelTest: 'ทดสอบช่องร้านค้า',
+            adminPasscode: 'รหัสผู้ดูแล',
+            allChannelsReady: 'ทุกช่องพร้อมใช้งาน',
+            isActive: 'กำลังทำงาน',
+            connected: 'เชื่อมต่อ',
+            ip: 'IP',
+            noNetworks: 'ไม่พบเครือข่าย',
+            priceSaved: 'บันทึกราคาแล้ว!',
+            configSaved: 'บันทึกการตั้งค่าแล้ว!',
+            accessDenied: 'รหัสไม่ถูกต้อง!',
+            selectSsid: 'เลือก SSID',
+            connectSent: 'ส่งคำสั่งเชื่อมต่อแล้ว',
+            failed: 'ล้มเหลว',
+            unknownError: 'ไม่ทราบสาเหตุ',
+            enterForgetSsid: 'กรอก/เลือก SSID ที่ต้องการลบ',
+            deleteWifi: 'ลบ WiFi',
+            wifiDeleted: 'ลบ WiFi แล้ว'
+        },
+        lo: {
+            maintenanceTitle: 'ບຳລຸງຮັກສາ',
+            exit: 'ອອກ',
+            merchant: 'ຮ້ານຄ້າ',
+            testing: 'ທົດສອບ',
+            startPrice: 'ລາຄາເລີ່ມຕົ້ນ',
+            functionConfig: 'ຕັ້ງຄ່າຟັງຊັນ',
+            wifiSetup: 'ຕັ້ງຄ່າ WiFi',
+            language: 'ພາສາ',
+            about: 'ກ່ຽວກັບ',
+            submit: 'ຢືນຢັນ',
+            startPriceThb: 'ລາຄາເລີ່ມຕົ້ນ (LAK)',
+            savePrice: 'ບັນທຶກລາຄາ',
+            saveConfig: 'ບັນທຶກການຕັ້ງຄ່າ',
+            scan: 'ສະແກນ',
+            scanning: 'ກຳລັງສະແກນ...',
+            show: 'ສະແດງ',
+            hide: 'ເຊື່ອງ',
+            forget: 'ລືມ',
+            connect: 'ເຊື່ອມຕໍ່',
+            saveLanguage: 'ບັນທຶກພາສາ',
+            languagePendingNote: 'ເລືອກພາສາ ແລ້ວກົດບັນທຶກເພື່ອໃຊ້ງານ',
+            languageSaved: 'ບັນທຶກພາສາແລ້ວ!',
+            deviceInfo: 'ຂໍ້ມູນອຸປະກອນ',
+            merchantChannelTest: 'ທົດສອບຊ່ອງຮ້ານຄ້າ',
+            adminPasscode: 'ລະຫັດຜູ້ດູແລ',
+            allChannelsReady: 'ທຸກຊ່ອງພ້ອມໃຊ້ງານ',
+            isActive: 'ກຳລັງເຮັດວຽກ',
+            connected: 'ເຊື່ອມຕໍ່',
+            ip: 'IP',
+            noNetworks: 'ບໍ່ພົບເຄືອຂ່າຍ',
+            priceSaved: 'ບັນທຶກລາຄາແລ້ວ!',
+            configSaved: 'ບັນທຶກການຕັ້ງຄ່າແລ້ວ!',
+            accessDenied: 'ລະຫັດບໍ່ຖືກຕ້ອງ!',
+            selectSsid: 'ເລືອກ SSID',
+            connectSent: 'ສົ່ງຄຳສັ່ງເຊື່ອມຕໍ່ແລ້ວ',
+            failed: 'ລົ້ມເຫຼວ',
+            unknownError: 'ບໍ່ຮູ້ສາເຫດ',
+            enterForgetSsid: 'ປ້ອນ/ເລືອກ SSID ທີ່ຕ້ອງການລຶບ',
+            deleteWifi: 'ລຶບ WiFi',
+            wifiDeleted: 'ລຶບ WiFi ແລ້ວ'
+        }
+    };
+
+    function t(key) {
+        return (langText[currentLanguage] && langText[currentLanguage][key]) || langText.en[key] || key;
+    }
+
+    const functionText = {
+        en: {
+            tableName: 'Name',
+            tableEnable: 'Enable',
+            tableTime: 'Time',
+            tableStartTime: 'Start Time',
+            tableEndTime: 'End Time',
+            channels: {
+                Spray: 'Water Spray',
+                Foam: 'Foam Spray',
+                Air: 'Air Blow',
+                Water: 'Tap Water',
+                Vac: 'Vacuum',
+                Tire: 'Black Tire',
+                Wax: 'Wax',
+                Frag: 'Fragrance'
+            },
+            catpaw: {
+                t_total: 'Total Time',
+                uv: 'UV and Ozone',
+                dust: 'Dust Blow',
+                bact: 'Bacteria Disinfection',
+                dry: 'Hot Air Dry',
+                perfumeShoe: 'Shoe Perfume',
+                perfumeHelmet: 'Helmet Perfume'
+            }
+        },
+        th: {
+            tableName: '\u0e0a\u0e37\u0e48\u0e2d',
+            tableEnable: '\u0e40\u0e1b\u0e34\u0e14',
+            tableTime: '\u0e40\u0e27\u0e25\u0e32',
+            tableStartTime: '\u0e40\u0e27\u0e25\u0e32\u0e40\u0e23\u0e34\u0e48\u0e21',
+            tableEndTime: '\u0e40\u0e27\u0e25\u0e32\u0e2a\u0e34\u0e49\u0e19\u0e2a\u0e38\u0e14',
+            channels: {
+                Spray: '\u0e09\u0e35\u0e14\u0e19\u0e49\u0e33',
+                Foam: '\u0e09\u0e35\u0e14\u0e42\u0e1f\u0e21',
+                Air: '\u0e40\u0e1b\u0e48\u0e32\u0e25\u0e21',
+                Water: '\u0e19\u0e49\u0e33\u0e1b\u0e23\u0e30\u0e1b\u0e32',
+                Vac: '\u0e14\u0e39\u0e14\u0e1d\u0e38\u0e48\u0e19',
+                Tire: '\u0e22\u0e32\u0e07\u0e14\u0e33',
+                Wax: 'Wax',
+                Frag: '\u0e19\u0e49\u0e33\u0e2b\u0e2d\u0e21'
+            },
+            catpaw: {
+                t_total: '\u0e40\u0e27\u0e25\u0e32\u0e23\u0e27\u0e21',
+                uv: '\u0e2d\u0e1a\u0e14\u0e49\u0e27\u0e22 UV \u0e41\u0e25\u0e30\u0e42\u0e2d\u0e42\u0e0b\u0e19',
+                dust: '\u0e40\u0e1b\u0e48\u0e32\u0e1d\u0e38\u0e48\u0e19',
+                bact: '\u0e06\u0e48\u0e32\u0e40\u0e0a\u0e37\u0e49\u0e2d\u0e41\u0e1a\u0e04\u0e17\u0e35\u0e40\u0e23\u0e35\u0e22',
+                dry: '\u0e2d\u0e1a\u0e41\u0e2b\u0e49\u0e07\u0e14\u0e49\u0e27\u0e22\u0e25\u0e21\u0e23\u0e49\u0e2d\u0e19',
+                perfumeShoe: '\u0e2d\u0e1a\u0e23\u0e2d\u0e07\u0e40\u0e17\u0e49\u0e32\u0e14\u0e49\u0e27\u0e22\u0e19\u0e49\u0e33\u0e2b\u0e2d\u0e21',
+                perfumeHelmet: '\u0e2d\u0e1a\u0e2b\u0e21\u0e27\u0e01\u0e14\u0e49\u0e27\u0e22\u0e19\u0e49\u0e33\u0e2b\u0e2d\u0e21'
+            }
+        },
+        lo: {
+            tableName: '\u0e8a\u0eb7\u0ec8',
+            tableEnable: '\u0ec0\u0e9b\u0eb5\u0e94',
+            tableTime: '\u0ec0\u0ea7\u0ea5\u0eb2',
+            tableStartTime: '\u0ec0\u0ea7\u0ea5\u0eb2\u0ec0\u0ea5\u0eb5\u0ec8\u0ea1',
+            tableEndTime: '\u0ec0\u0ea7\u0ea5\u0eb2\u0eaa\u0eb4\u0ec9\u0e99\u0eaa\u0eb8\u0e94',
+            channels: {
+                Spray: '\u0eaa\u0eb5\u0e94\u0e99\u0ec9\u0eb3',
+                Foam: '\u0eaa\u0eb5\u0e94\u0ec2\u0e9f\u0ea1',
+                Air: '\u0ec0\u0e9b\u0ebb\u0ec8\u0eb2\u0ea5\u0ebb\u0ea1',
+                Water: '\u0e99\u0ec9\u0eb3\u0e9b\u0eb0\u0e9b\u0eb2',
+                Vac: '\u0e94\u0eb9\u0e94\u0e9d\u0eb8\u0ec8\u0e99',
+                Tire: '\u0ea2\u0eb2\u0e87\u0e94\u0eb3',
+                Wax: 'Wax',
+                Frag: '\u0e99\u0ec9\u0eb3\u0eab\u0ead\u0ea1'
+            },
+            catpaw: {
+                t_total: '\u0ec0\u0ea7\u0ea5\u0eb2\u0ea5\u0ea7\u0ea1',
+                uv: '\u0ead\u0ebb\u0e9a\u0e94\u0ec9\u0ea7\u0e8d UV \u0ec1\u0ea5\u0eb0\u0ec2\u0ead\u0ec2\u0e8a\u0e99',
+                dust: '\u0ec0\u0e9b\u0ebb\u0ec8\u0eb2\u0e9d\u0eb8\u0ec8\u0e99',
+                bact: '\u0e82\u0ec9\u0eb2\u0ec0\u0e8a\u0eb7\u0ec9\u0ead\u0ec1\u0e9a\u0eb1\u0e81\u0e97\u0eb5\u0ec0\u0ea3\u0e8d',
+                dry: '\u0ead\u0ebb\u0e9a\u0ec1\u0eab\u0ec9\u0e87\u0e94\u0ec9\u0ea7\u0e8d\u0ea5\u0ebb\u0ea1\u0eae\u0ec9\u0ead\u0e99',
+                perfumeShoe: '\u0ead\u0ebb\u0e9a\u0ec0\u0e81\u0eb5\u0e9a\u0e94\u0ec9\u0ea7\u0e8d\u0e99\u0ec9\u0eb3\u0eab\u0ead\u0ea1',
+                perfumeHelmet: '\u0ead\u0ebb\u0e9a\u0edd\u0ea7\u0e81\u0e94\u0ec9\u0ea7\u0e8d\u0e99\u0ec9\u0eb3\u0eab\u0ead\u0ea1'
+            }
+        }
+    };
+
+    function ft(key) {
+        const pack = functionText[currentLanguage] || functionText.en;
+        return pack[key] || functionText.en[key] || key;
+    }
+
+    function getChannelLabel(name) {
+        const pack = functionText[currentLanguage] || functionText.en;
+        return (pack.channels && pack.channels[name]) || functionText.en.channels[name] || name;
+    }
+
+    function updateChannelLabels() {
+        ['Spray','Foam','Air','Water','Vac','Tire','Wax','Frag'].forEach(name => {
+            const btn = document.getElementById('btn-' + name);
+            if (btn) btn.innerText = getChannelLabel(name);
+        });
+        const status = document.getElementById('ch-status');
+        if (status) status.innerText = activeCH ? `${getChannelLabel(activeCH)} ${t('isActive')}` : t('allChannelsReady');
+    }
+
+    function updateCurrencyButtons() {
+        const thb = document.getElementById('currency-thb');
+        const lak = document.getElementById('currency-lak');
+        if (thb) thb.classList.toggle('active', currentCurrency === 'THB');
+        if (lak) lak.classList.toggle('active', currentCurrency === 'LAK');
+    }
+
+    function applyLanguage() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            el.innerText = t(el.getAttribute('data-i18n'));
+        });
+        const passBtn = document.getElementById('btn-show');
+        if (passBtn) passBtn.innerText = document.getElementById('w-pass').type === 'password' ? t('show') : t('hide');
+        updateChannelLabels();
+        updateLanguageCards();
+        updateCurrencyButtons();
+        updateWifiStatus();
+        if (document.getElementById('p-fn').style.display !== 'none') renderFn();
+    }
+
+    function updateLanguageCards() {
+        document.querySelectorAll('[data-lang-card]').forEach(card => {
+            card.classList.toggle('pending', card.getAttribute('data-lang-card') === pendingLanguage);
+        });
+    }
 
     const keyRows = [
         ['1','2','3','4','5','6','7','8','9','0'],
@@ -220,8 +526,8 @@
     window.togglePass = () => {
         const inp = document.getElementById('w-pass');
         const btn = document.getElementById('btn-show');
-        if(inp.type === 'password') { inp.type = 'text'; btn.innerText = 'HIDE'; }
-        else { inp.type = 'password'; btn.innerText = 'SHOW'; }
+        if(inp.type === 'password') { inp.type = 'text'; btn.innerText = t('hide'); }
+        else { inp.type = 'password'; btn.innerText = t('show'); }
     };
     window.openKb = (el) => { kbTarget = el; document.getElementById('m-kb').style.display='flex'; document.getElementById('m-kb-val').value=el.value; renderKb(); };
     window.pressKb = (k) => { let d=document.getElementById('m-kb-val'); if(k==='BS') d.value=d.value.slice(0,-1); else d.value+=k; };
@@ -233,12 +539,12 @@
         if (activeCH === enName) {
             btn.style.background = '#374151'; activeCH = null;
             document.querySelectorAll('#ch-grid button').forEach(b => { b.style.opacity='1'; b.style.cursor='pointer'; });
-            document.getElementById('ch-status').innerText = 'All Channels Ready';
+            document.getElementById('ch-status').innerText = t('allChannelsReady');
             sendUart(`[Merchant] ${enName} Off`);
         } else {
             activeCH = enName; btn.style.background = 'var(--secondary)';
             document.querySelectorAll('#ch-grid button').forEach(b => { if(b.id !== 'btn-'+enName){ b.style.opacity='0.3'; b.style.cursor='not-allowed'; } });
-            document.getElementById('ch-status').innerText = `${enName} is ACTIVE`;
+            document.getElementById('ch-status').innerText = `${getChannelLabel(enName)} ${t('isActive')}`;
             sendUart(`[Merchant] ${enName} On`);
         }
     };
@@ -248,16 +554,16 @@
             forceShowPage(id);
         } else {
             pendingPage = id;
-            openNp(null, "Admin Passcode");
+            openNp(null, t('adminPasscode'));
         }
     };
     
     function forceShowPage(id) {
         document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-        document.getElementById('p-' + id).style.display = 'block';
+        document.getElementById('p-' + id).style.display = id === 'language' ? 'flex' : 'block';
         document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
         document.getElementById('m-' + id).classList.add('active');
-        if(id === 'fn') renderFn(); if(id === 'about') renderAbout(); if(id === 'wifi') updateWifiStatus();
+        if(id === 'fn') renderFn(); if(id === 'about') renderAbout(); if(id === 'wifi') updateWifiStatus(); if(id === 'language') updateLanguageCards();
     }
 
     window.adjPrice = (v) => { 
@@ -269,17 +575,22 @@
         else if (p < 1) p = 1;
         el.innerText = p; 
     };
+    window.setCurrency = (currency) => {
+        currentCurrency = currency === 'LAK' ? 'LAK' : 'THB';
+        updateCurrencyButtons();
+    };
     window.savePrice = async () => {
         const p = parseInt(document.getElementById('price-val').innerText);
+        const payload = {startPrices:p, currency:currentCurrency};
         const res = await fetch('/api/settings', {
             method:'POST', 
             headers: {'Content-Type': 'application/json'},
-            body:JSON.stringify({startPrices:p})
+            body:JSON.stringify(payload)
         });
         const d = await res.json();
         if(d.ok) { 
-            sendUart(`[Config] Preference|{"startPrices":${p}}`);
-            alert("Price Saved!"); 
+            sendUart(`[Config] Preference|${JSON.stringify(payload)}`);
+            alert(t('priceSaved'));
         }
     };
     window.sendUart = (m) => fetch(`/api/uart_send?msg=${encodeURIComponent(m)}`);
@@ -314,7 +625,7 @@
         if(s) {
             if(pendingPage && pendingPage !== 'merchant'){ 
                 if(val==='88888') forceShowPage(pendingPage); 
-                else alert("Access Denied!"); 
+                else alert(t('accessDenied'));
                 pendingPage=null; 
             }
             else if(npTarget) npTarget.value=val;
@@ -326,8 +637,8 @@
         try { 
             const res=await fetch('/api/wifi/status'); 
             const d=await res.json(); 
-            document.getElementById('w-status-ssid').innerText=d.ssid?`Connected: ${d.ssid}`:'--'; 
-            document.getElementById('w-status-ip').innerText=d.ip?`IP: ${d.ip}`:'--'; 
+            document.getElementById('w-status-ssid').innerText=d.ssid?`${t('connected')}: ${d.ssid}`:'--';
+            document.getElementById('w-status-ip').innerText=d.ip?`${t('ip')}: ${d.ip}`:'--';
             
             // Fill from config/preference
             if(config.ssid) document.getElementById('w-ssid').value = config.ssid;
@@ -337,7 +648,7 @@
 
     window.scanWifi = async () => {
         const btn = document.getElementById('btn-scan');
-        btn.innerText = 'SCANNING...'; btn.disabled = true;
+        btn.innerText = t('scanning'); btn.disabled = true;
         try {
             const res = await fetch('/api/wifi/scan');
             const nets = await res.json();
@@ -348,16 +659,16 @@
                     <span style="color:var(--primary); font-weight:900;">${n.signal}%</span>
                 </div>`;
             });
-            document.getElementById('w-list').innerHTML = html || '<div style="padding:15px; text-align:center;">No Networks Found</div>';
+            document.getElementById('w-list').innerHTML = html || `<div style="padding:15px; text-align:center;">${t('noNetworks')}</div>`;
         } catch(e) {}
-        btn.innerText = 'SCAN'; btn.disabled = false;
+        btn.innerText = t('scan'); btn.disabled = false;
     };
     window.selectWifi = (ssid) => { document.getElementById('w-ssid').value = ssid; };
 
     window.connectWifi = async () => {
         const ssid = document.getElementById('w-ssid').value;
         const pw = document.getElementById('w-pass').value;
-        if(!ssid) return alert("Select SSID");
+        if(!ssid) return alert(t('selectSsid'));
         
         // 1. Update Preference first
         await fetch('/api/settings', {
@@ -376,17 +687,40 @@
             body:JSON.stringify({ssid:ssid, password:pw})
         });
         const d = await res.json();
-        if(d.ok) { alert("Connect Command Sent"); updateWifiStatus(); }
-        else alert("Failed: " + (d.msg || "Unknown error"));
+        if(d.ok) { alert(t('connectSent')); updateWifiStatus(); }
+        else alert(`${t('failed')}: ${d.msg || t('unknownError')}`);
     };
 
     window.forgetWifi = async () => {
         const ssid = document.getElementById('w-ssid').value;
-        if(!ssid) return alert("Enter/Select SSID to Forget");
-        if(!confirm(`Delete WiFi "${ssid}"?`)) return;
+        if(!ssid) return alert(t('enterForgetSsid'));
+        if(!confirm(`${t('deleteWifi')} "${ssid}"?`)) return;
         const res = await fetch('/api/wifi/forget', {method:'POST', body:JSON.stringify({ssid:ssid})});
         const d = await res.json();
-        if(d.ok) { alert("WiFi Deleted"); updateWifiStatus(); }
+        if(d.ok) { alert(t('wifiDeleted')); updateWifiStatus(); }
+    };
+
+    window.setPendingLanguage = (lang) => {
+        pendingLanguage = lang;
+        updateLanguageCards();
+    };
+
+    window.saveLanguage = async () => {
+        currentLanguage = pendingLanguage;
+        applyLanguage();
+        const payload = { language: currentLanguage };
+        try {
+            const res = await fetch('/api/settings', {
+                method:'POST',
+                headers: {'Content-Type': 'application/json'},
+                body:JSON.stringify(payload)
+            });
+            const d = await res.json();
+            if(d.ok) {
+                sendUart(`[Config] Preference|${JSON.stringify(payload)}`);
+                alert(t('languageSaved'));
+            }
+        } catch(e) {}
     };
 
     window.setMode = (m) => { currentMode=m; document.querySelectorAll('.f-tab').forEach(t=>t.classList.toggle('active', t.innerText===m)); renderFn(); };
@@ -395,8 +729,17 @@
         const box = document.getElementById('fn-container');
         let html = '<table class="f-table">';
         if (currentMode === 'CATCARWASH') {
-            html += '<tr><th>Name</th><th>Enable</th><th>Time</th></tr>';
-            const names = ["น้ำหอม", "Wax", "ยางดำ", "ดูดฝุ่น", "น้ำประปา", "เป่าลม", "ฉีดโฟม", "ฉีดน้ำ"];
+            html += `<tr><th>${ft('tableName')}</th><th>${ft('tableEnable')}</th><th>${ft('tableTime')}</th></tr>`;
+            const names = [
+                getChannelLabel('Frag'),
+                getChannelLabel('Wax'),
+                getChannelLabel('Tire'),
+                getChannelLabel('Vac'),
+                getChannelLabel('Water'),
+                getChannelLabel('Air'),
+                getChannelLabel('Foam'),
+                getChannelLabel('Spray')
+            ];
             const en = config.fnEnable || config.fn_enable || [true,true,true,true,true,true,true,true];
             const t = config.fnTime || config.fn_time || [11,10,9,8,7,6,5,4];
             const o = config.fnOrder || config.fn_order || [0,1,2,3,4,5,6,7];
@@ -409,15 +752,16 @@
                 html += `<tr data-idx="${idx}"><td>${n}</td><td><input type="checkbox" class="f-check" ${en[idx]?'checked':''}></td><td><input class="f-input" value="${t[idx]}" style="width:70px;height:35px;" onclick="openNp(this)"></td></tr>`; 
             });
         } else {
-            html += '<tr><th>NAME</th><th style="text-align:center;">Start_Time</th><th style="text-align:center;">End_Time</th></tr>';
+            html += `<tr><th>${ft('tableName')}</th><th style="text-align:center;">${ft('tableStartTime')}</th><th style="text-align:center;">${ft('tableEndTime')}</th></tr>`;
             const cp = config.catpaw_config || {};
-            const pName = currentMode === 'CATPAW-HELMET' ? 'อบหมวกด้วยน้ำหอม' : 'อบรองเท้าด้วยน้ำหอม';
+            const catpawText = (functionText[currentLanguage] || functionText.en).catpaw;
+            const pName = currentMode === 'CATPAW-HELMET' ? catpawText.perfumeHelmet : catpawText.perfumeShoe;
             const items = [
-                {id:'t_total', n:'TOTAL TIME', s:null, e:cp.t_total || 420},
-                {id:'uv', n:'อบด้วยยูวีและโอโซน', s:cp.uv_s || 0, e:cp.uv_e || 420},
-                {id:'dust', n:'เป่าฝุ่นด้วยแรงดันลม', s:cp.dust_s || 0, e:cp.dust_e || 60},
-                {id:'bact', n:'ฆ่าเชื้อแบคทีเรีย', s:cp.bact_s || 0, e:cp.bact_e || 180},
-                {id:'dry', n:'อบแห้งด้วยลมร้อน', s:cp.dry_s || 0, e:cp.dry_e || 300},
+                {id:'t_total', n:catpawText.t_total, s:null, e:cp.t_total || 420},
+                {id:'uv', n:catpawText.uv, s:cp.uv_s || 0, e:cp.uv_e || 420},
+                {id:'dust', n:catpawText.dust, s:cp.dust_s || 0, e:cp.dust_e || 60},
+                {id:'bact', n:catpawText.bact, s:cp.bact_s || 0, e:cp.bact_e || 180},
+                {id:'dry', n:catpawText.dry, s:cp.dry_s || 0, e:cp.dry_e || 300},
                 {id:'perfume', n:pName, s:cp.perfume_s || 0, e:cp.perfume_e || 420}
             ];
             items.forEach(it => { 
@@ -460,7 +804,7 @@
         const d = await res.json();
         if(d.ok) { 
             sendUart(`[Config] Preference|${JSON.stringify(payload)}`);
-            alert("Config Saved!"); 
+            alert(t('configSaved'));
         }
     };
 
@@ -509,7 +853,12 @@
             const res=await fetch('/api/settings'); 
             config = await res.json(); 
             document.getElementById('price-val').innerText = config.startPrices || config.start_prices || 20; 
+            currentCurrency = (config.currency || config.money_system || 'THB').toUpperCase() === 'LAK' ? 'LAK' : 'THB';
+            currentLanguage = config.language || config.lang || 'en';
+            if(!langText[currentLanguage]) currentLanguage = 'en';
+            pendingLanguage = currentLanguage;
         } catch(e){}
+        applyLanguage();
     }
     init();
 })();

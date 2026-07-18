@@ -1,9 +1,9 @@
 <div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column;" onclick="handleGlobalClick()">
     <!-- Header -->
     <div style="height:72px; background:#E79124; display:flex; align-items:center; justify-content:space-between; padding:0 32px; flex-shrink:0;">
-        <span style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">QR Payment</span>
+        <span id="qr-title" style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">QR Payment</span>
         <div style="color:white; font-size:1.3rem; font-weight:bold; background:rgba(0,0,0,0.2); padding:8px 16px; border-radius:8px;">
-            ยอดเงินคงเหลือ: <span class="global-balance-display">0</span> THB
+            <span id="qr-balance-label">Balance</span>: <span class="global-balance-display">0</span> <span class="currency-unit">THB</span>
         </div>
     </div>
 
@@ -11,22 +11,22 @@
     <div style="flex:1; display:flex;">
         <!-- Left: Control -->
         <div style="width:400px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px; border-right:1px solid rgba(255,255,255,0.1); padding:40px;">
-            <p style="color:#9CA3AF; font-size:1.2rem; font-weight:bold; letter-spacing:2px; text-transform:uppercase;">จำนวนเงิน</p>
+            <p id="qr-amount-label" style="color:#9CA3AF; font-size:1.2rem; font-weight:bold; letter-spacing:2px; text-transform:uppercase;">Amount</p>
             
             <div style="display:flex; align-items:center; gap:20px;">
                 <button onclick="adj( -10 )" style="width:80px; height:80px; background:#1F2937; color:white; border:2px solid #374151; border-radius:16px; font-size:3rem; cursor:pointer;">-</button>
                 <div style="width:180px; height:100px; background:#111827; border:2px solid #374151; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:10px;">
                     <span id="qr-amount" style="font-size:3.5rem; font-weight:bold; color:white;">10</span>
-                    <span style="font-size:1.2rem; color:#9CA3AF; font-weight:bold; margin-top:15px;">THB</span>
+                    <span class="currency-unit" style="font-size:1.2rem; color:#9CA3AF; font-weight:bold; margin-top:15px;">THB</span>
                 </div>
                 <button onclick="adj( 10 )" style="width:80px; height:80px; background:#1F2937; color:white; border:2px solid #374151; border-radius:16px; font-size:3rem; cursor:pointer;">+</button>
             </div>
 
-            <p style="color:#3B82F6; font-size:1.1rem; font-weight:bold; cursor:pointer; text-decoration:underline; margin-bottom:10px;">Scan the QR to pay</p>
+            <p id="qr-scan-label" style="color:#3B82F6; font-size:1.1rem; font-weight:bold; cursor:pointer; text-decoration:underline; margin-bottom:10px;">Scan the QR to pay</p>
 
             <div style="width:100%; display:flex; flex-direction:column; gap:15px;">
                 <button id="btn-qr-ok" onclick="requestQR()" style="width:100%; height:80px; background:#1E3A8A; color:white; font-size:1.8rem; font-weight:bold; border-radius:16px; border:none; cursor:pointer; text-transform:uppercase;">OK</button>
-                <button onclick="navTo('/page/payment', '[State] Payment')" style="width:100%; height:60px; background:transparent; color:#9CA3AF; border:1px solid #374151; border-radius:16px; font-size:1.4rem; cursor:pointer;">Back</button>
+                <button id="qr-back-btn" onclick="navTo('/page/payment', '[State] Payment')" style="width:100%; height:60px; background:transparent; color:#9CA3AF; border:1px solid #374151; border-radius:16px; font-size:1.4rem; cursor:pointer;">Back</button>
             </div>
         </div>
 
@@ -34,8 +34,8 @@
         <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; position:relative;">
             <div id="qr-container" style="width:400px; height:400px; background:white; border-radius:24px; padding:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 40px rgba(255,255,255,0.1);">
                 <div id="qr-placeholder" style="text-align:center; color:#111827;">
-                    <p style="font-weight:bold; font-size:1.2rem;">พร้อมชำระเงิน</p>
-                    <p style="font-size:0.9rem; color:#6B7280;">กดปุ่ม OK เพื่อรับ QR Code</p>
+                    <p id="qr-ready-label" style="font-weight:bold; font-size:1.2rem;">Ready to pay</p>
+                    <p id="qr-ready-sub-label" style="font-size:0.9rem; color:#6B7280;">Press OK to get QR Code</p>
                 </div>
                 <img id="qr-img" src="" style="display:none; width:100%; height:100%; object-fit:contain;">
             </div>
@@ -44,7 +44,7 @@
             <!-- Overlay for Success/Error - Fixed to only show for new events -->
             <div id="qr-overlay" style="display:none; position:absolute; inset:0; background:rgba(17,24,39,0.95); z-index:1000; flex-direction:column; align-items:center; justify-content:center; gap:20px; border-radius:0;">
                 <h2 id="overlay-title" style="font-size:5rem; font-weight:bold; margin:0;">SUCCESS</h2>
-                <p id="overlay-msg" style="font-size:1.8rem; color:#9CA3AF;">กำลังเริ่มงาน...</p>
+                <p id="overlay-msg" style="font-size:1.8rem; color:#9CA3AF;">Starting...</p>
             </div>
         </div>
     </div>
@@ -57,6 +57,24 @@
         let lastSeenActionSeq = 0;
         let lastSeenQrSeq = 0;
         let lastSeenStateSeq = 0;
+        let lang = 'en';
+        let currencyUnit = 'THB';
+        const i18n = {
+            en: { title:'QR Payment', balance:'Balance', amount:'Amount', scan:'Scan the QR to pay', back:'Back', ready:'Ready to pay', readySub:'Press OK to get QR Code', creating:'Creating QR...', waiting:'Waiting for QR from Server...', success:'SUCCESS', failed:'FAILED', timeout:'TIMEOUT', paymentOk:'Payment successful. Press START to begin.', paymentError:'Payment failed', qrExpired:'QR expired. Please try again.', start:'START' },
+            th: { title:'\u0e0a\u0e33\u0e23\u0e30\u0e14\u0e49\u0e27\u0e22 QR', balance:'\u0e22\u0e2d\u0e14\u0e40\u0e07\u0e34\u0e19\u0e04\u0e07\u0e40\u0e2b\u0e25\u0e37\u0e2d', amount:'\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19', scan:'\u0e2a\u0e41\u0e01\u0e19 QR \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e0a\u0e33\u0e23\u0e30\u0e40\u0e07\u0e34\u0e19', back:'\u0e01\u0e25\u0e31\u0e1a', ready:'\u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e0a\u0e33\u0e23\u0e30\u0e40\u0e07\u0e34\u0e19', readySub:'\u0e01\u0e14\u0e1b\u0e38\u0e48\u0e21 OK \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e23\u0e31\u0e1a QR Code', creating:'\u0e01\u0e33\u0e25\u0e31\u0e07\u0e2a\u0e23\u0e49\u0e32\u0e07 QR...', waiting:'\u0e01\u0e33\u0e25\u0e31\u0e07\u0e23\u0e2d QR \u0e08\u0e32\u0e01 Server...', success:'\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08', failed:'\u0e25\u0e49\u0e21\u0e40\u0e2b\u0e25\u0e27', timeout:'\u0e2b\u0e21\u0e14\u0e40\u0e27\u0e25\u0e32', paymentOk:'\u0e0a\u0e33\u0e23\u0e30\u0e40\u0e07\u0e34\u0e19\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u0e01\u0e14 START \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e23\u0e34\u0e48\u0e21\u0e07\u0e32\u0e19', paymentError:'\u0e0a\u0e33\u0e23\u0e30\u0e40\u0e07\u0e34\u0e19\u0e1c\u0e34\u0e14\u0e1e\u0e25\u0e32\u0e14', qrExpired:'QR \u0e2b\u0e21\u0e14\u0e2d\u0e32\u0e22\u0e38 \u0e01\u0e23\u0e38\u0e13\u0e32\u0e25\u0e2d\u0e07\u0e43\u0e2b\u0e21\u0e48', start:'\u0e40\u0e23\u0e34\u0e48\u0e21' },
+            lo: { title:'\u0e8a\u0eb3\u0ea5\u0eb0\u0e94\u0ec9\u0ea7\u0e8d QR', balance:'\u0e8d\u0ead\u0e94\u0ec0\u0e87\u0eb4\u0e99\u0e84\u0ebb\u0e87\u0ec0\u0eab\u0ebc\u0eb7\u0ead', amount:'\u0e88\u0eb3\u0e99\u0ea7\u0e99\u0ec0\u0e87\u0eb4\u0e99', scan:'\u0eaa\u0eb0\u0ec1\u0e81\u0e99 QR \u0ec0\u0e9e\u0eb7\u0ec8\u0ead\u0e8a\u0eb3\u0ea5\u0eb0\u0ec0\u0e87\u0eb4\u0e99', back:'\u0e81\u0eb1\u0e9a', ready:'\u0e9e\u0ec9\u0ead\u0ea1\u0e8a\u0eb3\u0ea5\u0eb0\u0ec0\u0e87\u0eb4\u0e99', readySub:'\u0e81\u0ebb\u0e94\u0e9b\u0eb8\u0ec8\u0ea1 OK \u0ec0\u0e9e\u0eb7\u0ec8\u0ead\u0eae\u0eb1\u0e9a QR Code', creating:'\u0e81\u0eb3\u0ea5\u0eb1\u0e87\u0eaa\u0ec9\u0eb2\u0e87 QR...', waiting:'\u0e81\u0eb3\u0ea5\u0eb1\u0e87\u0ea5\u0ecd QR \u0e88\u0eb2\u0e81 Server...', success:'\u0eaa\u0eb3\u0ec0\u0ea5\u0eb1\u0e94', failed:'\u0ea5\u0ebb\u0ec9\u0ea1\u0ec0\u0eab\u0ebc\u0ea7', timeout:'\u0edd\u0ebb\u0e94\u0ec0\u0ea7\u0ea5\u0eb2', paymentOk:'\u0e8a\u0eb3\u0ea5\u0eb0\u0ec0\u0e87\u0eb4\u0e99\u0eaa\u0eb3\u0ec0\u0ea5\u0eb1\u0e94 \u0e81\u0ebb\u0e94 START \u0ec0\u0e9e\u0eb7\u0ec8\u0ead\u0ec0\u0ea5\u0eb5\u0ec8\u0ea1\u0ea7\u0ebd\u0e81', paymentError:'\u0e8a\u0eb3\u0ea5\u0eb0\u0ec0\u0e87\u0eb4\u0e99\u0e9c\u0eb4\u0e94\u0e9e\u0eb2\u0e94', qrExpired:'QR \u0edd\u0ebb\u0e94\u0ead\u0eb2\u0e8d\u0eb8 \u0e81\u0eb0\u0ea5\u0eb8\u0e99\u0eb2\u0ea5\u0ead\u0e87\u0ec3\u0edd\u0ec8', start:'\u0ec0\u0ea5\u0eb5\u0ec8\u0ea1' }
+        };
+        const tr = (key) => (i18n[lang] && i18n[lang][key]) || i18n.en[key] || key;
+        const setText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
+        function applyLanguage() {
+            setText('qr-title', tr('title'));
+            setText('qr-balance-label', tr('balance'));
+            setText('qr-amount-label', tr('amount'));
+            setText('qr-scan-label', tr('scan'));
+            setText('qr-back-btn', tr('back'));
+            setText('qr-ready-label', tr('ready'));
+            setText('qr-ready-sub-label', tr('readySub'));
+        }
         
         // Timeout logic for topup mode
         const urlParams = new URLSearchParams(window.location.search);
@@ -66,6 +84,14 @@
 
         // Auto send [QR] wait on load
         fetch('/api/uart_send?msg=' + encodeURIComponent('[QR] wait'));
+        fetch('/api/settings?t=' + Date.now()).then(r=>r.json()).then(config => {
+            lang = config.language || config.lang || 'en';
+            if (!i18n[lang]) lang = 'en';
+            currencyUnit = (config.currency || config.money_system || 'THB').toUpperCase() === 'LAK' ? 'LAK' : 'THB';
+            document.querySelectorAll('.currency-unit').forEach(el => { el.innerText = currencyUnit; });
+            document.getElementById('qr-status-label').innerText = amount + ' ' + currencyUnit;
+            applyLanguage();
+        }).catch(()=>{});
 
         if (isTopup) {
             console.log("Topup mode active: 2-minute timeout enabled.");
@@ -98,14 +124,14 @@
             amount += v;
             if (amount < 10) amount = 10;
             document.getElementById('qr-amount').innerText = amount;
-            document.getElementById('qr-status-label').innerText = amount + ' THB';
+            document.getElementById('qr-status-label').innerText = amount + ' ' + currencyUnit;
         };
 
         window.requestQR = () => {
             if (isWaiting) return;
             isWaiting = true;
             document.getElementById('btn-qr-ok').style.opacity = '0.5';
-            document.getElementById('qr-placeholder').innerHTML = '<p style="font-weight:bold;">กำลังสร้าง QR...</p>';
+            document.getElementById('qr-placeholder').innerHTML = `<p style="font-weight:bold;">${tr('creating')}</p>`;
             fetch('/api/uart_send?msg=' + encodeURIComponent('[QR] ' + amount));
         };
 
@@ -125,7 +151,7 @@
                         img.style.display = 'block';
                         img.src = (qe.name === 'QR_URL') ? qe.val : 'https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=' + encodeURIComponent(qe.val);
                     } else if (qe.name === 'WAITING_QR') {
-                        document.getElementById('qr-placeholder').innerHTML = '<p style="font-weight:bold;">กำลังรอ QR จาก Server...</p>';
+                        document.getElementById('qr-placeholder').innerHTML = `<p style="font-weight:bold;">${tr('waiting')}</p>`;
                     }
                 }
 
@@ -135,12 +161,12 @@
                     lastSeenActionSeq = ae.seq;
                     if (ae.name === 'PAYMENT_OK') {
                         if (isTopup) clearInterval(timeoutTimer); // Stop timeout if payment ok
-                        showOverlay('SUCCESS', '#10B981', 'ชำระเงินสำเร็จ กรุณากดปุ่มเพื่อเริ่มงาน');
+                        showOverlay(tr('success'), '#10B981', tr('paymentOk'));
                         const ov = document.getElementById('qr-overlay');
                         if (!document.getElementById('btn-start-work')) {
                             const startBtn = document.createElement('button');
                             startBtn.id = 'btn-start-work';
-                            startBtn.innerText = 'START';
+                            startBtn.innerText = tr('start');
                             startBtn.style = 'margin-top:20px; width:250px; height:80px; background:#10B981; color:white; font-size:2rem; font-weight:bold; border-radius:16px; border:none; cursor:pointer; box-shadow:0 10px 20px rgba(16,185,129,0.3);';
                             startBtn.onclick = async () => {
                                 fetch('/api/uart_send?msg=' + encodeURIComponent('[Action] Start'));
@@ -152,10 +178,10 @@
                         }
                         clearInterval(poll);
                     } else if (ae.name === 'PAYMENT_ERROR') {
-                        showOverlay('FAILED', '#EF4444', ae.val || 'ชำระเงินผิดพลาด');
+                        showOverlay(tr('failed'), '#EF4444', ae.val || tr('paymentError'));
                         setTimeout(hideOverlay, 3000);
                     } else if (ae.name === 'PAYMENT_TIMEOUT') {
-                        showOverlay('TIMEOUT', '#F59E0B', 'QR หมดอายุ กรุณาลองใหม่');
+                        showOverlay(tr('timeout'), '#F59E0B', tr('qrExpired'));
                         setTimeout(hideOverlay, 3000);
                     }
                 }

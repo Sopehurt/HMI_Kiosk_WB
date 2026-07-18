@@ -1,38 +1,38 @@
 <div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column; font-family: sans-serif; overflow:hidden;">
     <!-- Header: Solid colors, no shadows -->
     <div style="height:72px; background:#E79124; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 32px;">
-        <span style="font-size:1.8rem; font-weight:bold; color:white;">CATCARWASH Operation</span>
+        <span id="opcw-title" style="font-size:1.8rem; font-weight:bold; color:white;">CATCARWASH Operation</span>
         <div style="display:flex; gap:15px; align-items:center;">
             <div style="color:white; font-size:1.3rem; font-weight:bold; background:#111827; padding:8px 16px; border-radius:8px; border:1px solid #374151;">
-                ยอดเงินคงเหลือ: <span class="global-balance-display">0</span> THB
+                <span id="opcw-balance-label">Balance</span>: <span class="global-balance-display">0</span> <span class="currency-unit">THB</span>
             </div>
-            <button onclick="topUp()" style="background:#3B82F6; color:white; border:none; border-radius:8px; padding:10px 24px; font-weight:bold; font-size:1.1rem; cursor:pointer;">TOP UP</button>
+            <button id="opcw-topup-btn" onclick="topUp()" style="background:#3B82F6; color:white; border:none; border-radius:8px; padding:10px 24px; font-weight:bold; font-size:1.1rem; cursor:pointer;">TOP UP</button>
         </div>
     </div>
 
     <!-- Status: Minimalist -->
     <div style="padding:20px 32px 0 32px;">
         <div style="background:#1E2836; border:1px solid #374151; border-radius:12px; padding:12px; text-align:center;">
-            <p style="color:#9CA3AF; font-size:0.9rem; font-weight:bold; margin-bottom:4px;">STATUS</p>
+            <p id="opcw-status-label" style="color:#9CA3AF; font-size:0.9rem; font-weight:bold; margin-bottom:4px;">STATUS</p>
             <h2 id="status-display" style="color:#F59E0B; font-size:2.2rem; margin:0; text-transform:uppercase;">PLEASE SELECT A MODE</h2>
         </div>
     </div>
 
     <!-- Buttons Grid: Hardcoded as requested -->
     <div id="btn-grid" style="flex:1; padding:20px 32px; display:grid; grid-template-columns:repeat(4, 1fr); grid-template-rows:repeat(2, 1fr); gap:12px;">
-        <button class="op-btn" id="btn-Spray" onclick="toggleFn('Spray', 'ฉีดน้ำ')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ฉีดน้ำ</button>
-        <button class="op-btn" id="btn-Foam" onclick="toggleFn('Foam', 'ฉีดโฟม')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ฉีดโฟม</button>
-        <button class="op-btn" id="btn-Air" onclick="toggleFn('Air', 'เป่าลม')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">เป่าลม</button>
-        <button class="op-btn" id="btn-Water" onclick="toggleFn('Water', 'น้ำประปา')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">น้ำประปา</button>
-        <button class="op-btn" id="btn-Vac" onclick="toggleFn('Vac', 'ดูดฝุ่น')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ดูดฝุ่น</button>
-        <button class="op-btn" id="btn-Tire" onclick="toggleFn('Tire', 'ยางดำ')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">ยางดำ</button>
-        <button class="op-btn" id="btn-Wax" onclick="toggleFn('Wax', 'Wax')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Wax</button>
-        <button class="op-btn" id="btn-Frag" onclick="toggleFn('Frag', 'น้ำหอม')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">น้ำหอม</button>
+        <button class="op-btn" id="btn-Spray" onclick="toggleFn('Spray')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Water Spray</button>
+        <button class="op-btn" id="btn-Foam" onclick="toggleFn('Foam')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Foam Spray</button>
+        <button class="op-btn" id="btn-Air" onclick="toggleFn('Air')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Air Blow</button>
+        <button class="op-btn" id="btn-Water" onclick="toggleFn('Water')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Tap Water</button>
+        <button class="op-btn" id="btn-Vac" onclick="toggleFn('Vac')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Vacuum</button>
+        <button class="op-btn" id="btn-Tire" onclick="toggleFn('Tire')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Black Tire</button>
+        <button class="op-btn" id="btn-Wax" onclick="toggleFn('Wax')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Wax</button>
+        <button class="op-btn" id="btn-Frag" onclick="toggleFn('Frag')" style="background:#1F2937; border:2px solid #374151; border-radius:12px; color:#D1D5DB; font-size:1.8rem; font-weight:bold; cursor:pointer;">Fragrance</button>
     </div>
 
     <!-- Finish: Clean & Fast -->
     <div style="height:90px; display:flex; justify-content:center; align-items:center; padding-bottom:10px;">
-        <button onclick="finishOp()" style="width:280px; height:60px; background:#EF4444; color:white; border:none; border-radius:12px; font-size:1.8rem; font-weight:bold; cursor:pointer;">FINISH</button>
+        <button id="opcw-finish-btn" onclick="finishOp()" style="width:280px; height:60px; background:#EF4444; color:white; border:none; border-radius:12px; font-size:1.8rem; font-weight:bold; cursor:pointer;">FINISH</button>
     </div>
 </div>
 
@@ -48,13 +48,39 @@
         pointer-events: none;
     }
     * { transition: none !important; animation: none !important; }
+    .op-btn { line-height:1.15; padding:10px; white-space:normal; overflow-wrap:anywhere; }
 </style>
 
 <script>
     (function() {
         let activeFn = null;
+        let lang = 'en';
+        const i18n = {
+            en: { title:'CATCARWASH Operation', balance:'Balance', topup:'TOP UP', status:'STATUS', select:'PLEASE SELECT A MODE', active:'ACTIVE', finish:'FINISH', channels:{Spray:'Water Spray', Foam:'Foam Spray', Air:'Air Blow', Water:'Tap Water', Vac:'Vacuum', Tire:'Black Tire', Wax:'Wax', Frag:'Fragrance'} },
+            th: { title:'\u0e01\u0e32\u0e23\u0e17\u0e33\u0e07\u0e32\u0e19 CATCARWASH', balance:'\u0e22\u0e2d\u0e14\u0e40\u0e07\u0e34\u0e19\u0e04\u0e07\u0e40\u0e2b\u0e25\u0e37\u0e2d', topup:'\u0e40\u0e15\u0e34\u0e21\u0e40\u0e07\u0e34\u0e19', status:'\u0e2a\u0e16\u0e32\u0e19\u0e30', select:'\u0e01\u0e23\u0e38\u0e13\u0e32\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e42\u0e2b\u0e21\u0e14', active:'\u0e01\u0e33\u0e25\u0e31\u0e07\u0e17\u0e33\u0e07\u0e32\u0e19', finish:'\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e2a\u0e34\u0e49\u0e19', channels:{Spray:'\u0e09\u0e35\u0e14\u0e19\u0e49\u0e33', Foam:'\u0e09\u0e35\u0e14\u0e42\u0e1f\u0e21', Air:'\u0e40\u0e1b\u0e48\u0e32\u0e25\u0e21', Water:'\u0e19\u0e49\u0e33\u0e1b\u0e23\u0e30\u0e1b\u0e32', Vac:'\u0e14\u0e39\u0e14\u0e1d\u0e38\u0e48\u0e19', Tire:'\u0e22\u0e32\u0e07\u0e14\u0e33', Wax:'Wax', Frag:'\u0e19\u0e49\u0e33\u0e2b\u0e2d\u0e21'} },
+            lo: { title:'\u0e81\u0eb2\u0e99\u0ec0\u0eae\u0eb1\u0e94\u0ea7\u0ebd\u0e81 CATCARWASH', balance:'\u0e8d\u0ead\u0e94\u0ec0\u0e87\u0eb4\u0e99\u0e84\u0ebb\u0e87\u0ec0\u0eab\u0ebc\u0eb7\u0ead', topup:'\u0ec0\u0e95\u0eb5\u0ea1\u0ec0\u0e87\u0eb4\u0e99', status:'\u0eaa\u0eb0\u0e96\u0eb2\u0e99\u0eb0', select:'\u0e81\u0eb0\u0ea5\u0eb8\u0e99\u0eb2\u0ec0\u0ea5\u0eb7\u0ead\u0e81\u0ec2\u0edd\u0e94', active:'\u0e81\u0eb3\u0ea5\u0eb1\u0e87\u0ec0\u0eae\u0eb1\u0e94\u0ea7\u0ebd\u0e81', finish:'\u0eaa\u0eb3\u0ec0\u0ea5\u0eb1\u0e94', channels:{Spray:'\u0eaa\u0eb5\u0e94\u0e99\u0ec9\u0eb3', Foam:'\u0eaa\u0eb5\u0e94\u0ec2\u0e9f\u0ea1', Air:'\u0ec0\u0e9b\u0ebb\u0ec8\u0eb2\u0ea5\u0ebb\u0ea1', Water:'\u0e99\u0ec9\u0eb3\u0e9b\u0eb0\u0e9b\u0eb2', Vac:'\u0e94\u0eb9\u0e94\u0e9d\u0eb8\u0ec8\u0e99', Tire:'\u0ea2\u0eb2\u0e87\u0e94\u0eb3', Wax:'Wax', Frag:'\u0e99\u0ec9\u0eb3\u0eab\u0ead\u0ea1'} }
+        };
+        const tr = (key) => (i18n[lang] && i18n[lang][key]) || i18n.en[key] || key;
+        const channelLabel = (name) => ((i18n[lang] || i18n.en).channels[name] || i18n.en.channels[name] || name);
+        const setText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
+        function applyLanguage() {
+            setText('opcw-title', tr('title'));
+            setText('opcw-balance-label', tr('balance'));
+            setText('opcw-topup-btn', tr('topup'));
+            setText('opcw-status-label', tr('status'));
+            setText('opcw-finish-btn', tr('finish'));
+            ['Spray','Foam','Air','Water','Vac','Tire','Wax','Frag'].forEach(name => setText('btn-' + name, channelLabel(name)));
+            const st = document.getElementById('status-display');
+            st.innerText = activeFn ? `${channelLabel(activeFn)} ${tr('active')}` : tr('select');
+        }
+        fetch('/api/settings?t=' + Date.now()).then(r=>r.json()).then(config => {
+            lang = config.language || config.lang || 'en';
+            if (!i18n[lang]) lang = 'en';
+            document.querySelectorAll('.currency-unit').forEach(el => { el.innerText = (config.currency || config.money_system || 'THB').toUpperCase() === 'LAK' ? 'LAK' : 'THB'; });
+            applyLanguage();
+        }).catch(()=>{});
 
-        window.toggleFn = (enName, thName) => {
+        window.toggleFn = (enName) => {
             const btn = document.getElementById('btn-' + enName);
             if (activeFn === enName) {
                 fetch('/api/uart_send?msg=[Action] Off ' + enName);
@@ -65,11 +91,11 @@
                 setTimeout(() => {
                     fetch('/api/uart_send?msg=[Action] On ' + enName);
                 }, 30);
-                activateUI(enName, thName);
+                activateUI(enName);
             }
         };
 
-        function activateUI(enName, thName) {
+        function activateUI(enName) {
             activeFn = enName;
             const btns = document.querySelectorAll('.op-btn');
             for(let b of btns) {
@@ -77,7 +103,7 @@
                 b.classList.toggle('disabled', b.id !== 'btn-' + enName);
             }
             const st = document.getElementById('status-display');
-            st.innerText = thName + ' ACTIVE';
+            st.innerText = `${channelLabel(enName)} ${tr('active')}`;
             st.style.color = '#3B82F6';
         }
 
@@ -88,7 +114,7 @@
                 b.classList.remove('active', 'disabled');
             }
             const st = document.getElementById('status-display');
-            st.innerText = 'PLEASE SELECT A MODE';
+            st.innerText = tr('select');
             st.style.color = '#F59E0B';
         }
 

@@ -5,7 +5,7 @@
     <!-- Branding Section -->
     <div style="text-align:center;">
         <h1 style="font-size:100px; font-weight:700; color:#ffffff; margin:0; letter-spacing:-1px; font-family:'Inter', -apple-system, sans-serif;">Moderncha</h1>
-        <p style="font-size:22px; color:#64748b; margin-top:20px; letter-spacing:1px; font-weight:400;">Tap to start</p>
+        <p id="home-tap-label" style="font-size:22px; color:#64748b; margin-top:20px; letter-spacing:1px; font-weight:400;">Tap to start</p>
     </div>
 
     <!-- Status Indicator (Bottom Right) -->
@@ -29,7 +29,7 @@
 <div id="admin-numpad" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; display:none; justify-content:center; align-items:center;">
     <div style="background:#1f2937; border:1px solid #374151; border-radius:24px; padding:25px; width:400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
         <div style="text-align:center; margin-bottom:15px;">
-            <h3 style="color:#94a3b8; font-size:18px; font-weight:900; letter-spacing:2px; margin-bottom:12px;">ENTER ADMIN CODE</h3>
+            <h3 id="admin-code-title" style="color:#94a3b8; font-size:18px; font-weight:900; letter-spacing:2px; margin-bottom:12px;">ENTER ADMIN CODE</h3>
             <div id="admin-display" style="height:70px; background:#0f172a; border-radius:12px; display:flex; justify-content:center; align-items:center; font-size:42px; letter-spacing:10px; color:white; font-weight:700;"></div>
         </div>
         
@@ -48,7 +48,7 @@
             <button class="num-btn" onclick="pressAdmin('0')">0</button>
             <button class="num-btn" style="background:#10b981; font-size:28px;" onclick="closeAdmin(true)">OK</button>
         </div>
-        <button class="num-btn" style="width:100%; margin-top:15px; background:#4b5563; height:50px; font-size:16px; border-radius:10px;" onclick="closeAdmin(false)">CANCEL</button>
+        <button id="admin-cancel-btn" class="num-btn" style="width:100%; margin-top:15px; background:#4b5563; height:50px; font-size:16px; border-radius:10px;" onclick="closeAdmin(false)">CANCEL</button>
     </div>
 </div>
 
@@ -65,6 +65,18 @@
     let tapCount = 0;
     let tapTimer = null;
     let adminCode = "";
+    let lang = 'en';
+    const i18n = {
+        en: { tap: 'Tap to start', adminCode: 'ENTER ADMIN CODE', cancel: 'CANCEL', online: 'Online', offline: 'Offline' },
+        th: { tap: '\u0e41\u0e15\u0e30\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e23\u0e34\u0e48\u0e21', adminCode: '\u0e01\u0e23\u0e2d\u0e01\u0e23\u0e2b\u0e31\u0e2a\u0e1c\u0e39\u0e49\u0e14\u0e39\u0e41\u0e25', cancel: '\u0e22\u0e01\u0e40\u0e25\u0e34\u0e01', online: '\u0e2d\u0e2d\u0e19\u0e44\u0e25\u0e19\u0e4c', offline: '\u0e2d\u0e2d\u0e1f\u0e44\u0e25\u0e19\u0e4c' },
+        lo: { tap: '\u0ec1\u0e95\u0eb0\u0ec0\u0e9e\u0eb7\u0ec8\u0ead\u0ec0\u0ea5\u0eb5\u0ec8\u0ea1', adminCode: '\u0e9b\u0ec9\u0ead\u0e99\u0ea5\u0eb0\u0eab\u0eb1\u0e94\u0e9c\u0eb9\u0ec9\u0e94\u0eb9\u0ec1\u0ea5', cancel: '\u0e8d\u0ebb\u0e81\u0ec0\u0ea5\u0eb5\u0e81', online: '\u0ead\u0ead\u0e99\u0ea5\u0eb2\u0e8d', offline: '\u0ead\u0ead\u0e9f\u0ea5\u0eb2\u0e8d' }
+    };
+    const tr = (key) => (i18n[lang] && i18n[lang][key]) || i18n.en[key] || key;
+    function applyLanguage() {
+        document.getElementById('home-tap-label').innerText = tr('tap');
+        document.getElementById('admin-code-title').innerText = tr('adminCode');
+        document.getElementById('admin-cancel-btn').innerText = tr('cancel');
+    }
     
     // Idle Video Variables
     let idleTime = 30; // Default
@@ -74,6 +86,9 @@
 
     // Fetch settings to get delay_time[6]
     fetch('/api/settings').then(r=>r.json()).then(d => {
+        lang = (d.language || d.lang || 'en');
+        if (!i18n[lang]) lang = 'en';
+        applyLanguage();
         if(d.delay_time && d.delay_time[6]) {
             idleTime = parseInt(d.delay_time[6]);
         }
@@ -210,12 +225,12 @@
                     dot.style.background = '#10b981';
                     dot.style.boxShadow = '0 0 10px rgba(16,185,129,0.8)';
                     txt.style.color = '#10b981';
-                    txt.innerText = 'Online';
+                    txt.innerText = tr('online');
                 } else {
                     dot.style.background = '#4b5563';
                     dot.style.boxShadow = 'none';
                     txt.style.color = '#4b5563';
-                    txt.innerText = 'Offline';
+                    txt.innerText = tr('offline');
                 }
             }
 
