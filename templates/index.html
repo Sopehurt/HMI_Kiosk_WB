@@ -79,5 +79,27 @@
             updateDisplays(currentDisplayedBalance);
         });
     </script>
+
+    {% if is_dev %}
+    <!-- Dev Balance Adjustment Panel -->
+    <div onclick="event.stopPropagation()" style="position: fixed; bottom: 20px; left: 20px; z-index: 99999; display: flex; gap: 8px; background: rgba(17, 24, 39, 0.95); border: 2px dashed #e79124; border-radius: 16px; padding: 10px 16px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); pointer-events: auto;">
+        <span style="color: #e79124; font-size: 13px; font-weight: 800; font-family: sans-serif; letter-spacing: 1px; margin-right: 5px;">DEV MODE</span>
+        <button onclick="adjustDevBalance(-10)" style="background: #374151; color: white; border: 1px solid #4b5563; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.1s;" onmouseover="this.style.background='#4b5563'" onmouseout="this.style.background='#374151'">-10 THB</button>
+        <button onclick="adjustDevBalance(10)" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.1s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">+10 THB</button>
+    </div>
+    <script>
+        async function adjustDevBalance(amount) {
+            try {
+                await fetch('/api/dev/adjust_balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: amount })
+                });
+            } catch(e) {
+                console.error(e);
+            }
+        }
+    </script>
+    {% endif %}
 </body>
 </html>

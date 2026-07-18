@@ -19,6 +19,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 app.mount("/video", StaticFiles(directory=os.path.join(BASE_DIR, "video")), name="video")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+templates.env.globals["is_dev"] = sys.platform == "darwin"
 VIDEO_DIR = os.path.join(BASE_DIR, "video")
 
 # --- Global State ---
@@ -226,7 +227,7 @@ import logging
 # Setup local file logging for UART
 uart_logger = logging.getLogger('uart_debug')
 uart_logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler('/home/chokun/HMI_Kiosk_WB/uart.log')
+fh = logging.FileHandler(os.path.join(BASE_DIR, 'uart.log'))
 fh.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
 uart_logger.addHandler(fh)
 
@@ -313,6 +314,14 @@ async def page_op_catpaw(request: Request):
 async def page_maint(request: Request):
     send_queue.put("[State] maintenance")
     return templates.TemplateResponse(request=request, name="pages/maintenance.html")
+
+@app.post("/api/dev/adjust_balance")
+async def api_dev_adjust_balance(data: dict = Body(...)):
+    if sys.platform != "darwin":
+        return JSONResponse(content={"ok": False, "msg": "Only allowed in dev environment"}, status_code=403)
+    amount = data.get("amount", 0)
+    shared_state["balance"] = max(0, shared_state["balance"] + amount)
+    return {"ok": True, "balance": shared_state["balance"]}
 
 @app.get("/api/balance_html")
 async def get_balance_html(): return HTMLResponse(content=str(shared_state["balance"]))
