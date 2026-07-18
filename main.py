@@ -223,13 +223,19 @@ def _parse_line(line: str):
         shared_state["last_schedule_event"] = {"raw": line.replace("[Schedule]", "").strip(), "seq": time.time()}
 
 import logging
+from logging.handlers import RotatingFileHandler
 
 # Setup local file logging for UART
 uart_logger = logging.getLogger('uart_debug')
 uart_logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler(os.path.join(BASE_DIR, 'uart.log'))
-fh.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
-uart_logger.addHandler(fh)
+
+if sys.platform != "darwin":
+    # Limit to 5MB, keep up to 3 backups
+    fh = RotatingFileHandler(os.path.join(BASE_DIR, 'uart.log'), maxBytes=5*1024*1024, backupCount=3)
+    fh.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+    uart_logger.addHandler(fh)
+else:
+    uart_logger.addHandler(logging.NullHandler())
 
 def uart_worker():
     uart_logger.info("UART Worker Thread Started")
@@ -266,7 +272,8 @@ def uart_worker():
             uart_logger.error(err_msg)
             time.sleep(2)
 
-threading.Thread(target=uart_worker, daemon=True).start()
+if sys.platform != "darwin":
+    threading.Thread(target=uart_worker, daemon=True).start()
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request): return templates.TemplateResponse(request=request, name="index.html")
