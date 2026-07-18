@@ -9,9 +9,9 @@
         display: flex; align-items: center; justify-content: space-between; padding: 0 32px;
         flex-shrink: 0;
     ">
-        <span style="font-size: 1.7rem; font-weight: bold; color: white; letter-spacing: 2px;">Payment</span>
+        <span id="payment-title" style="font-size: 1.7rem; font-weight: bold; color: white; letter-spacing: 2px;">Payment</span>
         <div style="color: white; font-size: 1.5rem; font-weight: bold; background: rgba(0,0,0,0.2); padding: 8px 16px; border-radius: 8px;">
-            ยอดเงินคงเหลือ: <span class="global-balance-display">0</span> THB
+            <span id="payment-balance-label">Balance</span>: <span class="global-balance-display">0</span> <span class="currency-unit">THB</span>
         </div>
     </div>
 
@@ -22,7 +22,7 @@
         justify-content: center; align-items: center;
         gap: 40px;
     ">
-        <p style="color: #9CA3AF; font-size: 1.5rem; font-weight: bold; letter-spacing: 2px;">เลือกวิธีการชำระเงิน</p>
+        <p id="payment-choose-label" style="color: #9CA3AF; font-size: 1.5rem; font-weight: bold; letter-spacing: 2px;">Select payment method</p>
 
         <div style="display: flex; gap: 40px;">
 
@@ -36,7 +36,7 @@
                 onmousedown="this.style.filter='brightness(0.7)'"
                 onmouseup="this.style.filter=''"
                 onclick="navTo('/page/cash{% if mode %}?mode={{ mode }}{% endif %}', '[State] cash')"
-            >เงินสด</button>
+            ><span id="payment-cash-label">Cash</span></button>
 
             <button style="
                 width: 300px; height: 150px;
@@ -61,17 +61,39 @@
             onmousedown="this.style.filter='brightness(0.7)'"
             onmouseup="this.style.filter=''"
             onclick="navTo('{% if mode == 'topup' %}/page/operation_{{ machine_system }}{% else %}/page/home{% endif %}', '{% if mode == 'topup' %}[State] operation{% else %}[State] Home{% endif %}')"
-        >Back</button>
+        ><span id="payment-back-label">Back</span></button>
     </div>
 
     <!-- Finish overlay -->
     <div id="finish-overlay" style="display:none; position:absolute; inset:0; background:#111827; justify-content:center; align-items:center; flex-direction:column; gap:40px; z-index:100;">
-        <h2 style="color:#10B981; font-size:6rem; font-weight:bold; letter-spacing:8px; margin:0; text-transform:uppercase; text-shadow:0 0 20px rgba(16,185,129,0.5);">COMPLETED</h2>
-        <p style="color:white; font-size:1.5rem;">Returning to Home...</p>
+        <h2 id="payment-completed-label" style="color:#10B981; font-size:6rem; font-weight:bold; letter-spacing:8px; margin:0; text-transform:uppercase; text-shadow:0 0 20px rgba(16,185,129,0.5);">COMPLETED</h2>
+        <p id="payment-returning-label" style="color:white; font-size:1.5rem;">Returning to Home...</p>
     </div>
 </div>
 
 <script>
+    (function initPaymentLanguage() {
+        const i18n = {
+            en: { title:'Payment', balance:'Balance', choose:'Select payment method', cash:'Cash', back:'Back', completed:'COMPLETED', returning:'Returning to Home...' },
+            th: { title:'\u0e0a\u0e33\u0e23\u0e30\u0e40\u0e07\u0e34\u0e19', balance:'\u0e22\u0e2d\u0e14\u0e40\u0e07\u0e34\u0e19\u0e04\u0e07\u0e40\u0e2b\u0e25\u0e37\u0e2d', choose:'\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e27\u0e34\u0e18\u0e35\u0e01\u0e32\u0e23\u0e0a\u0e33\u0e23\u0e30\u0e40\u0e07\u0e34\u0e19', cash:'\u0e40\u0e07\u0e34\u0e19\u0e2a\u0e14', back:'\u0e01\u0e25\u0e31\u0e1a', completed:'\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08', returning:'\u0e01\u0e33\u0e25\u0e31\u0e07\u0e01\u0e25\u0e31\u0e1a\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01...' },
+            lo: { title:'\u0e8a\u0eb3\u0ea5\u0eb0\u0ec0\u0e87\u0eb4\u0e99', balance:'\u0e8d\u0ead\u0e94\u0ec0\u0e87\u0eb4\u0e99\u0e84\u0ebb\u0e87\u0ec0\u0eab\u0ebc\u0eb7\u0ead', choose:'\u0ec0\u0ea5\u0eb7\u0ead\u0e81\u0ea7\u0eb4\u0e97\u0eb5\u0e8a\u0eb3\u0ea5\u0eb0\u0ec0\u0e87\u0eb4\u0e99', cash:'\u0ec0\u0e87\u0eb4\u0e99\u0eaa\u0ebb\u0e94', back:'\u0e81\u0eb1\u0e9a', completed:'\u0eaa\u0eb3\u0ec0\u0ea5\u0eb1\u0e94', returning:'\u0e81\u0eb3\u0ea5\u0eb1\u0e87\u0e81\u0eb1\u0e9a\u0edc\u0ec9\u0eb2\u0eab\u0ebc\u0eb1\u0e81...' }
+        };
+        const setText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
+        fetch('/api/settings?t=' + Date.now()).then(r=>r.json()).then(config => {
+            let lang = config.language || config.lang || 'en';
+            if (!i18n[lang]) lang = 'en';
+            const t = i18n[lang];
+            setText('payment-title', t.title);
+            setText('payment-balance-label', t.balance);
+            setText('payment-choose-label', t.choose);
+            setText('payment-cash-label', t.cash);
+            setText('payment-back-label', t.back);
+            setText('payment-completed-label', t.completed);
+            setText('payment-returning-label', t.returning);
+            document.querySelectorAll('.currency-unit').forEach(el => { el.innerText = (config.currency || config.money_system || 'THB').toUpperCase() === 'LAK' ? 'LAK' : 'THB'; });
+        }).catch(()=>{});
+    })();
+
     function navTo(url, uartMsg) {
         if(uartMsg) fetch('/api/uart_send?msg=' + encodeURIComponent(uartMsg));
         htmx.ajax('GET', url, {target: '#content'});

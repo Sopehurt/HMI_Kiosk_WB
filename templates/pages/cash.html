@@ -1,19 +1,19 @@
 <div style="width:1024px; height:600px; background:#111827; display:flex; flex-direction:column; font-family: sans-serif;">
     <!-- Header -->
     <div style="height:72px; background:#E79124; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 32px; flex-shrink:0;">
-        <span style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">Cash Payment</span>
+        <span id="cash-title" style="font-size:1.7rem; font-weight:bold; color:white; letter-spacing:2px;">Cash Payment</span>
         <div style="display:flex; gap:15px; align-items:center;">
             <div style="color:white; font-size:1.3rem; font-weight:bold; background:rgba(0,0,0,0.2); padding:8px 16px; border-radius:8px;">
-                ยอดเงินคงเหลือ: <span class="global-balance-display">0</span> THB
+                <span id="cash-balance-label">Balance</span>: <span class="global-balance-display">0</span> <span class="currency-unit">THB</span>
             </div>
-            <button class="btn btn-outline" style="padding:8px 24px; font-size:1.1rem; border:2px solid white; color:white; border-radius:12px;" onclick="navTo('/page/payment', '[State] Home')">Back</button>
+            <button id="cash-back-btn" class="btn btn-outline" style="padding:8px 24px; font-size:1.1rem; border:2px solid white; color:white; border-radius:12px;" onclick="navTo('/page/payment', '[State] Home')">Back</button>
         </div>
     </div>
 
     <!-- Content -->
     <div style="flex:1; display:flex; justify-content:center; align-items:center;">
         <div style="width:600px; height:450px; background:#1F2937; border-radius:32px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px; box-shadow:0 20px 50px rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.05);">
-            <p style="color:#9CA3AF; font-size:1.5rem; font-weight:bold; letter-spacing:3px; text-transform:uppercase;">หยอดเหรียญหรือธนบัตร</p>
+            <p id="cash-insert-label" style="color:#9CA3AF; font-size:1.5rem; font-weight:bold; letter-spacing:3px; text-transform:uppercase;">Insert coins or banknotes</p>
             
             <div style="display:flex; align-items:baseline; gap:10px;">
                 <span id="cash-balance-large" style="font-size:10rem; font-weight:bold; color:#10B981; text-shadow:0 0 30px rgba(16,185,129,0.3);">0</span>
@@ -23,7 +23,7 @@
                     <span id="promo-pct" style="font-size:1.2rem; color:#FCA5A5; font-weight:bold; background:rgba(239,68,68,0.2); padding:4px 8px; border-radius:8px;"></span>
                 </div>
                 <span id="start-price-label" style="font-size:4rem; color:white; font-weight:bold;">20</span>
-                <span style="font-size:1.5rem; color:#4B5563; font-weight:bold; margin-left:10px;">THB</span>
+                <span class="currency-unit" style="font-size:1.5rem; color:#4B5563; font-weight:bold; margin-left:10px;">THB</span>
             </div>
 
             <!-- Progress Bar -->
@@ -34,7 +34,7 @@
             <!-- Start Button -->
             <div id="start-op-container" style="visibility:hidden; opacity:0; transition:0.3s; margin-top:10px;">
                 <button onclick="startOp()" style="width:400px; height:100px; background:#10B981; color:white; font-size:2.5rem; font-weight:bold; border-radius:20px; border:none; cursor:pointer; box-shadow:0 10px 20px rgba(16,185,129,0.4); text-transform:uppercase; letter-spacing:2px;">
-                    เริ่มทำงาน
+                    <span id="cash-start-label">START</span>
                 </button>
             </div>
         </div>
@@ -44,11 +44,30 @@
 <script>
     (function() {
         let startPrice = 20;
+        let lang = 'en';
+        const i18n = {
+            en: { title:'Cash Payment', balance:'Balance', back:'Back', insert:'Insert coins or banknotes', start:'START' },
+            th: { title:'\u0e0a\u0e33\u0e23\u0e30\u0e14\u0e49\u0e27\u0e22\u0e40\u0e07\u0e34\u0e19\u0e2a\u0e14', balance:'\u0e22\u0e2d\u0e14\u0e40\u0e07\u0e34\u0e19\u0e04\u0e07\u0e40\u0e2b\u0e25\u0e37\u0e2d', back:'\u0e01\u0e25\u0e31\u0e1a', insert:'\u0e2b\u0e22\u0e2d\u0e14\u0e40\u0e2b\u0e23\u0e35\u0e22\u0e0d\u0e2b\u0e23\u0e37\u0e2d\u0e18\u0e19\u0e1a\u0e31\u0e15\u0e23', start:'\u0e40\u0e23\u0e34\u0e48\u0e21\u0e17\u0e33\u0e07\u0e32\u0e19' },
+            lo: { title:'\u0e8a\u0eb3\u0ea5\u0eb0\u0e94\u0ec9\u0ea7\u0e8d\u0ec0\u0e87\u0eb4\u0e99\u0eaa\u0ebb\u0e94', balance:'\u0e8d\u0ead\u0e94\u0ec0\u0e87\u0eb4\u0e99\u0e84\u0ebb\u0e87\u0ec0\u0eab\u0ebc\u0eb7\u0ead', back:'\u0e81\u0eb1\u0e9a', insert:'\u0eab\u0e8d\u0ead\u0e94\u0eab\u0ebc\u0ebd\u0e99\u0eab\u0ebc\u0eb7\u0e97\u0eb0\u0e99\u0eb0\u0e9a\u0eb1\u0e94', start:'\u0ec0\u0ea5\u0eb5\u0ec8\u0ea1\u0ec0\u0eae\u0eb1\u0e94\u0ea7\u0ebd\u0e81' }
+        };
+        const tr = (key) => (i18n[lang] && i18n[lang][key]) || i18n.en[key] || key;
+        const setText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
+        function applyLanguage() {
+            setText('cash-title', tr('title'));
+            setText('cash-balance-label', tr('balance'));
+            setText('cash-back-btn', tr('back'));
+            setText('cash-insert-label', tr('insert'));
+            setText('cash-start-label', tr('start'));
+        }
 
         async function init() {
             try {
                 const res = await fetch('/api/settings?t=' + Date.now());
                 const config = await res.json();
+                lang = config.language || config.lang || 'en';
+                if (!i18n[lang]) lang = 'en';
+                applyLanguage();
+                document.querySelectorAll('.currency-unit').forEach(el => { el.innerText = (config.currency || config.money_system || 'THB').toUpperCase() === 'LAK' ? 'LAK' : 'THB'; });
                 
                 let originalPrice = config.startPrices || config.start_prices || 20;
                 let promo = config.proMo || config.pro_mo;
