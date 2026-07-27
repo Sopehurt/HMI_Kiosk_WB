@@ -28,6 +28,16 @@
     .m-main { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; }
     .section-title { font-size: 24px; font-weight: 800; margin-bottom: 25px; color: var(--text); }
 
+    .m-cp-fn-row { display: flex; align-items: center; gap: 12px; }
+    .m-cp-fn-circle {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: #374151; border: 3px solid #1F2937;
+        flex-shrink: 0;
+    }
+    .m-cp-fn-text { color: white; font-size: 16px; font-weight: bold; word-break: break-word; }
+    .m-cp-circle-running { background: #FBBF24 !important; border-color: #FDE047 !important; }
+    .m-cp-circle-finished { background: #10B981 !important; border-color: #34D399 !important; }
+
     .f-card { background: var(--bg-side); border: 1px solid #2d3748; padding: 25px; border-radius: 8px; }
     .f-table { width: 100%; border-collapse: collapse; }
     .f-table th { text-align: left; padding: 12px; font-size: 14px; color: var(--text-muted); background: rgba(255,255,255,0.03); }
@@ -44,7 +54,7 @@
     .f-tabs { display: flex; background: var(--bg-side); padding: 5px; border-radius: 10px; gap: 5px; margin-bottom: 20px; width: fit-content; border: 1px solid #2d3748; }
     .f-tab { padding: 10px 20px; border: none; border-radius: 6px; font-size: 15px; font-weight: 800; color: var(--text-muted); background: transparent; cursor: pointer; }
     .f-tab.active { background: var(--secondary); color: white; }
-    #ch-grid .f-btn { line-height: 1.15; padding: 10px; white-space: normal; overflow-wrap: anywhere; }
+    #ch-grid .f-btn { font-size: 22px !important; line-height: 1.15; padding: 10px; white-space: normal; overflow-wrap: anywhere; }
 
     .language-page { display: flex; flex-direction: column; max-width: 760px; }
     .language-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
@@ -100,9 +110,9 @@
                     </div>
                 </div>
                 <div class="f-card" style="display:flex; align-items:center; justify-content:center; gap:40px; padding:34px 50px;">
-                    <button class="f-btn f-btn-danger" style="width:100px; height:80px; font-size:32px;" onclick="adjPrice(-5)">-5</button>
+                    <button id="price-dec-btn" class="f-btn f-btn-danger" style="width:100px; height:80px; font-size:32px;" onclick="adjPrice(-5)">-5</button>
                     <div id="price-val" style="font-size:96px; font-weight:900; color:var(--secondary);">20</div>
-                    <button class="f-btn f-btn-success" style="width:100px; height:80px; font-size:32px;" onclick="adjPrice(5)">+5</button>
+                    <button id="price-inc-btn" class="f-btn f-btn-success" style="width:100px; height:80px; font-size:32px;" onclick="adjPrice(5)">+5</button>
                 </div>
                 <button class="f-btn f-btn-success" style="margin-top:18px; width:100%; height:64px; font-size:24px;" onclick="savePrice()" data-i18n="savePrice">SAVE PRICE</button>
             </div>
@@ -169,22 +179,45 @@
 
             <div id="p-merchant" class="page">
                 <div class="section-title" data-i18n="merchantChannelTest">Merchant Channel Test</div>
-                <div class="f-card" style="padding:30px;">
+                
+                <!-- CATCARWASH MERCHANT VIEW (Original) -->
+                <div id="catcarwash-merchant-view" class="f-card" style="padding:30px;">
                     <div id="ch-grid" style="display:grid; grid-template-rows: 1fr 1fr; gap:30px;">
                         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
-                            <button id="btn-Spray" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Spray')">ฉีดน้ำ</button>
-                            <button id="btn-Foam" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Foam')">ฉีดโฟม</button>
-                            <button id="btn-Air" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Air')">เป่าลม</button>
-                            <button id="btn-Water" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Water')">น้ำประปา</button>
+                            <button id="btn-Spray" class="f-btn" style="height:120px; font-size:22px; background:#374151;" onclick="toggleCH('Spray')">ฉีดน้ำ</button>
+                            <button id="btn-Foam" class="f-btn" style="height:120px; font-size:22px; background:#374151;" onclick="toggleCH('Foam')">ฉีดโฟม</button>
+                            <button id="btn-Air" class="f-btn" style="height:120px; font-size:22px; background:#374151;" onclick="toggleCH('Air')">เป่าลม</button>
+                            <button id="btn-Water" class="f-btn" style="height:120px; font-size:22px; background:#374151;" onclick="toggleCH('Water')">น้ำประปา</button>
                         </div>
                         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
-                            <button id="btn-Vac" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Vac')">ดูดฝุ่น</button>
-                            <button id="btn-Tire" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Tire')">ยางดำ</button>
-                            <button id="btn-Wax" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Wax')">Wax</button>
-                            <button id="btn-Frag" class="f-btn" style="height:120px; font-size:32px; background:#374151;" onclick="toggleCH('Frag')">น้ำหอม</button>
+                            <button id="btn-Vac" class="f-btn" style="height:120px; font-size:22px; background:#374151;" onclick="toggleCH('Vac')">ดูดฝุ่น</button>
+                            <button id="btn-Tire" class="f-btn" style="height:120px; font-size:22px; background:#374151;" onclick="toggleCH('Tire')">ยางดำ</button>
+                            <button id="btn-Wax" class="f-btn" style="height:120px; font-size:22px; background:#374151;" onclick="toggleCH('Wax')">Wax</button>
+                            <button id="btn-Frag" class="f-btn" style="height:120px; font-size:22px; background:#374151;" onclick="toggleCH('Frag')">น้ำหอม</button>
                         </div>
                     </div>
                     <div id="ch-status" style="margin-top:20px; text-align:center; color:var(--text-muted); font-size:20px; font-weight:800;">All Channels Ready</div>
+                </div>
+
+                <!-- CATPAW MERCHANT VIEW (New) -->
+                <div id="catpaw-merchant-view" class="f-card" style="padding:25px; display:none;">
+                    <div style="display:flex; gap:30px; align-items:center;">
+                        <div id="m-cp-fn-list" style="flex:1.2; display:flex; flex-direction:column; gap:14px;">
+                        </div>
+                        <div style="flex:1; display:flex; flex-direction:column; gap:15px; align-items:center;">
+                            <div style="width:100%; background:#1E2836; border-radius:20px; border:1px solid #374151; padding:20px 10px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                                <span id="m-cp-status" style="color:#9CA3AF; font-size:22px; font-weight:900; letter-spacing:2px; text-transform:uppercase; margin-bottom:5px;">READY</span>
+                                <div style="display:flex; align-items:baseline;">
+                                    <span id="m-cp-timer" style="font-size:72px; font-weight:bold; color:white; line-height:1; font-family:monospace;">--</span>
+                                    <span id="m-cp-sec-label" style="font-size:20px; color:#9CA3AF; font-weight:bold; margin-left:10px;">SEC</span>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:15px; width:100%;">
+                                <button id="m-cp-start-btn" class="f-btn f-btn-success" style="flex:1; height:65px; font-size:22px; font-weight:900;" onclick="startCpTest()">START</button>
+                                <button id="m-cp-finish-btn" class="f-btn f-btn-danger" style="flex:1; height:65px; font-size:22px; font-weight:900;" onclick="finishCpTest()">FINISH EARLY</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -282,9 +315,9 @@
             connectSent: 'Connect Command Sent',
             failed: 'Failed',
             unknownError: 'Unknown error',
-            enterForgetSsid: 'Enter/Select SSID to Forget',
             deleteWifi: 'Delete WiFi',
-            wifiDeleted: 'WiFi Deleted'
+            wifiDeleted: 'WiFi Deleted',
+            confirmChangeCurrency: 'Confirm changing currency system?'
         },
         th: {
             maintenanceTitle: 'บำรุงรักษา',
@@ -324,9 +357,9 @@
             connectSent: 'ส่งคำสั่งเชื่อมต่อแล้ว',
             failed: 'ล้มเหลว',
             unknownError: 'ไม่ทราบสาเหตุ',
-            enterForgetSsid: 'กรอก/เลือก SSID ที่ต้องการลบ',
             deleteWifi: 'ลบ WiFi',
-            wifiDeleted: 'ลบ WiFi แล้ว'
+            wifiDeleted: 'ลบ WiFi แล้ว',
+            confirmChangeCurrency: 'ยืนยันการเปลี่ยนระบบสกุลเงิน?'
         },
         lo: {
             maintenanceTitle: 'ບຳລຸງຮັກສາ',
@@ -368,7 +401,8 @@
             unknownError: 'ບໍ່ຮູ້ສາເຫດ',
             enterForgetSsid: 'ປ້ອນ/ເລືອກ SSID ທີ່ຕ້ອງການລຶບ',
             deleteWifi: 'ລຶບ WiFi',
-            wifiDeleted: 'ລຶບ WiFi ແລ້ວ'
+            wifiDeleted: 'ລຶບ WiFi ແລ້ວ',
+            confirmChangeCurrency: 'ຢືນຢັນການປ່ຽນລະບົບສະກຸນເງິນ?'
         }
     };
 
@@ -481,6 +515,27 @@
         const lak = document.getElementById('currency-lak');
         if (thb) thb.classList.toggle('active', currentCurrency === 'THB');
         if (lak) lak.classList.toggle('active', currentCurrency === 'LAK');
+        
+        const decBtn = document.getElementById('price-dec-btn');
+        const incBtn = document.getElementById('price-inc-btn');
+        if (decBtn && incBtn) {
+            if (currentCurrency === 'LAK') {
+                decBtn.innerText = '-5k';
+                incBtn.innerText = '+5k';
+            } else {
+                decBtn.innerText = '-5';
+                incBtn.innerText = '+5';
+            }
+        }
+        
+        const titleEl = document.querySelector('[data-i18n="startPriceThb"]');
+        if (titleEl) {
+            if (currentCurrency === 'LAK') {
+                titleEl.innerText = currentLanguage === 'lo' ? 'ລາຄາເລີ່ມຕົ້ນ (LAK)' : (currentLanguage === 'th' ? 'ราคาเริ่มต้น (LAK)' : 'Start Price (LAK)');
+            } else {
+                titleEl.innerText = currentLanguage === 'lo' ? 'ລາຄາເລີ່ມຕົ້ນ (THB)' : (currentLanguage === 'th' ? 'ราคาเริ่มต้น (บาท)' : 'Start Price (THB)');
+            }
+        }
     }
 
     function applyLanguage() {
@@ -493,6 +548,7 @@
         updateLanguageCards();
         updateCurrencyButtons();
         updateWifiStatus();
+        renderMerchantView();
         if (document.getElementById('p-fn').style.display !== 'none') renderFn();
     }
 
@@ -563,25 +619,58 @@
         document.getElementById('p-' + id).style.display = id === 'language' ? 'flex' : 'block';
         document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
         document.getElementById('m-' + id).classList.add('active');
-        if(id === 'fn') renderFn(); if(id === 'about') renderAbout(); if(id === 'wifi') updateWifiStatus(); if(id === 'language') updateLanguageCards();
+        if(id === 'merchant') renderMerchantView(); if(id === 'fn') renderFn(); if(id === 'about') renderAbout(); if(id === 'wifi') updateWifiStatus(); if(id === 'language') updateLanguageCards();
     }
 
     window.adjPrice = (v) => { 
         let el = document.getElementById('price-val'); 
+        if (!el) return;
         let curr = parseInt(el.innerText);
-        let p = curr + v;
-        if (curr === 5 && v === -5) p = 1;
-        else if (curr === 1 && v === 5) p = 5;
-        else if (p < 1) p = 1;
-        el.innerText = p; 
+        if (currentCurrency === 'LAK') {
+            let step = (v > 0) ? 5000 : -5000;
+            let p = curr + step;
+            if (curr === 5000 && step === -5000) p = 1000;
+            else if (curr === 1000 && step === 5000) p = 5000;
+            else if (p < 1000) p = 1000;
+            el.innerText = p;
+        } else {
+            let p = curr + v;
+            if (curr === 5 && v === -5) p = 1;
+            else if (curr === 1 && v === 5) p = 5;
+            else if (p < 1) p = 1;
+            el.innerText = p;
+        }
     };
     window.setCurrency = (currency) => {
-        currentCurrency = currency === 'LAK' ? 'LAK' : 'THB';
+        const targetCurrency = currency === 'LAK' ? 'LAK' : 'THB';
+        if (currentCurrency === targetCurrency) return;
+        
+        if (!confirm(t('confirmChangeCurrency'))) return;
+        
+        currentCurrency = targetCurrency;
         updateCurrencyButtons();
+        
+        let el = document.getElementById('price-val');
+        if (el) {
+            let curr = parseInt(el.innerText);
+            if (currentCurrency === 'LAK') {
+                if (curr < 1000) {
+                    el.innerText = 1000;
+                }
+            } else {
+                if (curr >= 1000) {
+                    el.innerText = 20;
+                }
+            }
+        }
     };
     window.savePrice = async () => {
         const p = parseInt(document.getElementById('price-val').innerText);
-        const payload = {startPrices:p, currency:currentCurrency};
+        const payload = {
+            startPrices: p, 
+            currency: currentCurrency,
+            language: currentCurrency === 'LAK' ? 'LA' : 'TH'
+        };
         const res = await fetch('/api/settings', {
             method:'POST', 
             headers: {'Content-Type': 'application/json'},
@@ -708,7 +797,12 @@
     window.saveLanguage = async () => {
         currentLanguage = pendingLanguage;
         applyLanguage();
-        const payload = { language: currentLanguage };
+        
+        let espLang = 'EN';
+        if (currentLanguage === 'th') espLang = 'TH';
+        else if (currentLanguage === 'lo') espLang = 'LA';
+        
+        const payload = { language: espLang };
         try {
             const res = await fetch('/api/settings', {
                 method:'POST',
@@ -839,6 +933,46 @@
                 document.getElementById('val-bank').innerText = d.test_bank || 0;
             }
             
+            // Catpaw Merchant Test Polling Logic
+            const sys = (config.machine_system || config.machineSystem || '').toUpperCase();
+            if (sys.startsWith('CATPAW')) {
+                if (d.schedule_event && d.schedule_event.seq > cpLastSchedSeq) {
+                    cpLastSchedSeq = d.schedule_event.seq;
+                    const totalMatch = d.schedule_event.raw.match(/total:(\d+)/);
+                    if (totalMatch) {
+                        cpTimeLeft = parseInt(totalMatch[1]);
+                        const tm = document.getElementById('m-cp-timer');
+                        if (tm) tm.innerText = cpTimeLeft;
+                        sendUart('[Action] Load Schedule Success');
+                    }
+                }
+
+                const history = d.action_history || [];
+                history.forEach(evt => {
+                    if (evt.seq > cpLastActionSeq) {
+                        cpLastActionSeq = evt.seq;
+                        const lowerName = evt.name.toLowerCase();
+                        
+                        if (evt.name.includes('FnOn')) {
+                            cpTimerStarted = true;
+                            setCpCircleState(evt.name, 'm-cp-circle-running');
+                        } else if (evt.name.includes('FnOff')) {
+                            setCpCircleState(evt.name, 'm-cp-circle-finished');
+                        }
+                        
+                        if (lowerName.includes('pause') || lowerName.includes('door open')) {
+                            cpIsPaused = true;
+                            const st = document.getElementById('m-cp-status');
+                            if (st) st.innerText = t('paused');
+                        } else if (lowerName.includes('resume') || lowerName.includes('door close')) {
+                            cpIsPaused = false;
+                            const st = document.getElementById('m-cp-status');
+                            if (st) st.innerText = t('running');
+                        }
+                    }
+                });
+            }
+
             // Force Home ONLY if it is a NEW state event
             if (d.state_event && d.state_event.seq > lastSeenStateSeq) {
                 lastSeenStateSeq = d.state_event.seq;
@@ -848,17 +982,137 @@
             }
         } catch(e){} 
     }, 1000);
+
+    const cpFns = [
+        {id:'uv_ozone', key:'uv', match:'uv'},
+        {id:'dust', key:'dust', match:'dust'},
+        {id:'bact', key:'bact', match:'bact'},
+        {id:'dry', key:'dry', match:'dry'},
+        {id:'perfume', key:'perfume', match:'perfume'}
+    ];
+
+    let cpTimeLeft = 0;
+    let cpIsPaused = false;
+    let cpTimerStarted = false;
+    let cpLastActionSeq = Date.now() / 1000;
+    let cpLastSchedSeq = 0;
+
+    function renderMerchantView() {
+        const sys = (config.machine_system || config.machineSystem || '').toUpperCase();
+        const isCp = sys.startsWith('CATPAW');
+        const cwView = document.getElementById('catcarwash-merchant-view');
+        const cpView = document.getElementById('catpaw-merchant-view');
+
+        if (isCp) {
+            if (cwView) cwView.style.display = 'none';
+            if (cpView) cpView.style.display = 'block';
+            renderCpMerchantFns();
+        } else {
+            if (cwView) cwView.style.display = 'block';
+            if (cpView) cpView.style.display = 'none';
+        }
+    }
+
+    function renderCpMerchantFns() {
+        const container = document.getElementById('m-cp-fn-list');
+        if (!container) return;
+        
+        const sys = (config.machine_system || config.machineSystem || '').toUpperCase();
+        const mode = sys.includes('HELMET') ? 'helmet' : 'shoe';
+        
+        container.innerHTML = '';
+        cpFns.forEach(f => {
+            const div = document.createElement('div');
+            div.className = 'm-cp-fn-row';
+            const labelText = getCpFnLabel(f.key, mode);
+            div.innerHTML = `<div class="m-cp-fn-circle" id="m-cp-circle-${f.id}"></div><span class="m-cp-fn-text">${labelText}</span>`;
+            container.appendChild(div);
+        });
+    }
+
+    function getCpFnLabel(key, mode) {
+        const i18nCp = {
+            en: { uv:'UV and Ozone', dust:'Dust Blow', bact:'Bacteria Disinfection', dry:'Hot Air Dry', perfumeShoe:'Shoe Perfume', perfumeHelmet:'Helmet Perfume' },
+            th: { uv:'อบด้วย UV และโอโซน', dust:'เป่าฝุ่น', bact:'ฆ่าเชื้อแบคทีเรีย', dry:'อบแห้งด้วยลมร้อน', perfumeShoe:'อบรองเท้าด้วยน้ำหอม', perfumeHelmet:'อบหมวกด้วยน้ำหอม' },
+            lo: { uv:'ອບດ້ວຍ UV ແລະໂອໂຊນ', dust:'ເປົ່າຝຸ່ນ', bact:'ຂ້າເຊື້ອແບັກທີເຣຍ', dry:'ອບແຫ້ງດ້ວຍລົມຮ້ອນ', perfumeShoe:'ອບເກີບດ້ວຍນ້ຳຫອມ', perfumeHelmet:'ອບໝວກດ້ວຍນ້ຳຫອມ' }
+        };
+        const pack = i18nCp[currentLanguage] || i18nCp.en;
+        const finalKey = key === 'perfume' ? (mode === 'helmet' ? 'perfumeHelmet' : 'perfumeShoe') : key;
+        return pack[finalKey] || finalKey;
+    }
+
+    window.startCpTest = () => {
+        sendUart('[Action] Start');
+        cpTimerStarted = true;
+        cpIsPaused = false;
+        cpTimeLeft = 0;
+        cpLastActionSeq = Date.now() / 1000;
+        
+        cpFns.forEach(f => {
+            const el = document.getElementById('m-cp-circle-' + f.id);
+            if (el) el.classList.remove('m-cp-circle-running', 'm-cp-circle-finished');
+        });
+        
+        const st = document.getElementById('m-cp-status');
+        if (st) st.innerText = t('running');
+    };
+
+    window.finishCpTest = () => {
+        sendUart('[State] Finish');
+        setTimeout(() => sendUart('[Action] Finish'), 50);
+        cpTimerStarted = false;
+        cpIsPaused = false;
+        cpTimeLeft = 0;
+        const st = document.getElementById('m-cp-status');
+        if (st) st.innerText = t('completed');
+        const tm = document.getElementById('m-cp-timer');
+        if (tm) tm.innerText = '--';
+    };
+
+    function setCpCircleState(rawAction, className) {
+        const lowerAction = rawAction.toLowerCase();
+        cpFns.forEach(f => {
+            const pattern = `\"fn\":\"${f.match}\"`;
+            if (lowerAction.includes(pattern)) {
+                const circle = document.getElementById('m-cp-circle-' + f.id);
+                if (circle) {
+                    circle.classList.remove('m-cp-circle-running', 'm-cp-circle-finished');
+                    circle.classList.add(className);
+                }
+            }
+        });
+    }
+
+    setInterval(() => {
+        if (cpTimerStarted && !cpIsPaused && cpTimeLeft > 0) {
+            cpTimeLeft--;
+            const tm = document.getElementById('m-cp-timer');
+            if (tm) tm.innerText = cpTimeLeft;
+            if (cpTimeLeft <= 0) {
+                cpTimerStarted = false;
+                const st = document.getElementById('m-cp-status');
+                if (st) st.innerText = t('completed');
+            }
+        }
+    }, 1000);
+
     async function init() {
         try { 
             const res=await fetch('/api/settings'); 
             config = await res.json(); 
             document.getElementById('price-val').innerText = config.startPrices || config.start_prices || 20; 
             currentCurrency = (config.currency || config.money_system || 'THB').toUpperCase() === 'LAK' ? 'LAK' : 'THB';
-            currentLanguage = config.language || config.lang || 'en';
+            
+            let rawLang = (config.language || config.lang || 'en').toLowerCase();
+            if (rawLang === 'th') currentLanguage = 'th';
+            else if (rawLang === 'la' || rawLang === 'lo') currentLanguage = 'lo';
+            else currentLanguage = 'en';
+            
             if(!langText[currentLanguage]) currentLanguage = 'en';
             pendingLanguage = currentLanguage;
         } catch(e){}
         applyLanguage();
+        renderMerchantView();
     }
     init();
 })();

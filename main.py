@@ -123,6 +123,9 @@ def _save_to_pi(new_config: dict):
                 continue
                 
             final_k = mapping.get(k, k)
+            if final_k == "language":
+                val_str = str(v).lower()
+                v = "lo" if val_str == "la" else val_str
             data[final_k] = v
             # If it's machine_system, ensure both versions are updated to be safe
             if final_k in ["machine_system", "machineSystem"]:
@@ -297,10 +300,10 @@ async def page_cash(request: Request):
     return templates.TemplateResponse(request=request, name="pages/cash.html")
 
 @app.get("/page/qr")
-async def page_qr(request: Request):
+async def page_qr(request: Request, mode: Optional[str] = None):
     shared_state["current_page"] = "qr"
     send_queue.put("[State] qr")
-    return templates.TemplateResponse(request=request, name="pages/qr.html")
+    return templates.TemplateResponse(request=request, name="pages/qr.html", context={"mode": mode})
 
 @app.get("/page/operation_CATCARWASH")
 async def page_op_carwash(request: Request):

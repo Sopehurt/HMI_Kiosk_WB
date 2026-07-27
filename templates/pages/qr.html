@@ -14,19 +14,19 @@
             <p id="qr-amount-label" style="color:#9CA3AF; font-size:1.2rem; font-weight:bold; letter-spacing:2px; text-transform:uppercase;">Amount</p>
             
             <div style="display:flex; align-items:center; gap:20px;">
-                <button onclick="adj( -10 )" style="width:80px; height:80px; background:#1F2937; color:white; border:2px solid #374151; border-radius:16px; font-size:3rem; cursor:pointer;">-</button>
+                <button id="btn-qr-dec" onclick="adj(-1)" style="width:80px; height:80px; background:#1F2937; color:white; border:2px solid #374151; border-radius:16px; font-size:3rem; cursor:pointer;">-</button>
                 <div style="width:180px; height:100px; background:#111827; border:2px solid #374151; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:10px;">
                     <span id="qr-amount" style="font-size:3.5rem; font-weight:bold; color:white;">10</span>
                     <span class="currency-unit" style="font-size:1.2rem; color:#9CA3AF; font-weight:bold; margin-top:15px;">THB</span>
                 </div>
-                <button onclick="adj( 10 )" style="width:80px; height:80px; background:#1F2937; color:white; border:2px solid #374151; border-radius:16px; font-size:3rem; cursor:pointer;">+</button>
+                <button id="btn-qr-inc" onclick="adj(1)" style="width:80px; height:80px; background:#1F2937; color:white; border:2px solid #374151; border-radius:16px; font-size:3rem; cursor:pointer;">+</button>
             </div>
 
             <p id="qr-scan-label" style="color:#3B82F6; font-size:1.1rem; font-weight:bold; cursor:pointer; text-decoration:underline; margin-bottom:10px;">Scan the QR to pay</p>
 
             <div style="width:100%; display:flex; flex-direction:column; gap:15px;">
                 <button id="btn-qr-ok" onclick="requestQR()" style="width:100%; height:80px; background:#1E3A8A; color:white; font-size:1.8rem; font-weight:bold; border-radius:16px; border:none; cursor:pointer; text-transform:uppercase;">OK</button>
-                <button id="qr-back-btn" onclick="navTo('/page/payment', '[State] Payment')" style="width:100%; height:60px; background:transparent; color:#9CA3AF; border:1px solid #374151; border-radius:16px; font-size:1.4rem; cursor:pointer;">Back</button>
+                <button id="qr-back-btn" onclick="goBack()" style="width:100%; height:60px; background:transparent; color:#9CA3AF; border:1px solid #374151; border-radius:16px; font-size:1.4rem; cursor:pointer;">Back</button>
             </div>
         </div>
 
@@ -53,6 +53,11 @@
 <script>
     (function() {
         let amount = 10;
+        let minAmount = 10;
+        let maxAmount = 200;
+        let step = 10;
+        let isCatpaw = false;
+        let isLAK = false;
         let isWaiting = false;
         let lastSeenActionSeq = 0;
         let lastSeenQrSeq = 0;
@@ -77,8 +82,8 @@
         }
         
         // Timeout logic for topup mode
-        const urlParams = new URLSearchParams(window.location.search);
-        const isTopup = urlParams.get('mode') === 'topup';
+        window.isTopup = {% if mode == 'topup' %}true{% else %}false{% endif %};
+        const isTopup = window.isTopup;
         let timeoutSec = 120;
         let timeoutTimer = null;
 
@@ -87,9 +92,38 @@
         fetch('/api/settings?t=' + Date.now()).then(r=>r.json()).then(config => {
             lang = config.language || config.lang || 'en';
             if (!i18n[lang]) lang = 'en';
-            currencyUnit = (config.currency || config.money_system || 'THB').toUpperCase() === 'LAK' ? 'LAK' : 'THB';
+            
+            const machineSys = (config.machine_system || config.machineSystem || '').toUpperCase();
+            isCatpaw = machineSys.startsWith('CATPAW');
+            isLAK = (config.currency || config.money_system || 'THB').toUpperCase() === 'LAK';
+            currencyUnit = isLAK ? 'LAK' : 'THB';
+
+            const decBtn = document.getElementById('btn-qr-dec');
+            const incBtn = document.getElementById('btn-qr-inc');
+
+            if (isCatpaw) {
+                amount = config.startPrices || config.start_prices || (isLAK ? 1000 : 20);
+                if (decBtn) decBtn.style.visibility = 'hidden';
+                if (incBtn) incBtn.style.visibility = 'hidden';
+            } else {
+                if (decBtn) decBtn.style.visibility = 'visible';
+                if (incBtn) incBtn.style.visibility = 'visible';
+
+                if (isLAK) {
+                    minAmount = 10000;
+                    maxAmount = 100000;
+                    step = 5000;
+                    amount = 10000;
+                } else {
+                    minAmount = 10;
+                    maxAmount = 200;
+                    step = 10;
+                    amount = 10;
+                }
+            }
+
+            updateAmountDisplay();
             document.querySelectorAll('.currency-unit').forEach(el => { el.innerText = currencyUnit; });
-            document.getElementById('qr-status-label').innerText = amount + ' ' + currencyUnit;
             applyLanguage();
         }).catch(()=>{});
 
@@ -119,12 +153,25 @@
             if(d.state_event) lastSeenStateSeq = d.state_event.seq;
         }).catch(()=>{});
 
-        window.adj = (v) => {
-            if (isWaiting) return;
-            amount += v;
-            if (amount < 10) amount = 10;
-            document.getElementById('qr-amount').innerText = amount;
-            document.getElementById('qr-status-label').innerText = amount + ' ' + currencyUnit;
+        function updateAmountDisplay() {
+            const amountEl = document.getElementById('qr-amount');
+            if (amountEl) {
+                amountEl.innerText = amount;
+                amountEl.style.fontSize = amount >= 100000 ? '2.2rem' : (amount >= 10000 ? '2.5rem' : '3.5rem');
+            }
+            const statusEl = document.getElementById('qr-status-label');
+            if (statusEl) {
+                statusEl.innerText = amount + ' ' + currencyUnit;
+            }
+        }
+
+        window.adj = (dir) => {
+            if (isWaiting || isCatpaw) return;
+            let next = amount + (dir * step);
+            if (next < minAmount) next = minAmount;
+            if (next > maxAmount) next = maxAmount;
+            amount = next;
+            updateAmountDisplay();
         };
 
         window.requestQR = () => {
@@ -215,6 +262,21 @@
             if (timeoutTimer) clearInterval(timeoutTimer);
         }, {once:true});
     })();
+
+    window.goBack = async () => {
+        const isTopup = window.isTopup;
+        if (isTopup) {
+            try {
+                const confRes = await fetch('/api/settings');
+                const conf = await confRes.json();
+                navTo('/page/operation_' + (conf.machine_system || 'CATCARWASH'), '[Action] Resume');
+            } catch(e) {
+                navTo('/page/operation_CATCARWASH', '[Action] Resume');
+            }
+        } else {
+            navTo('/page/payment', '[State] Payment');
+        }
+    };
 
     function navTo(url, uartMsg) {
         if(uartMsg) fetch('/api/uart_send?msg=' + encodeURIComponent(uartMsg));
